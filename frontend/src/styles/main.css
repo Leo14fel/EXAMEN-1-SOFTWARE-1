@@ -1,0 +1,19 @@
+:root {
+  font-family: Manrope, Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+  margin: 0;
+}
+
+.foundation-shell {
+  min-height: 100vh;
+}
+
+.foundation-card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}

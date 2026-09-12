@@ -1,0 +1,58 @@
+# OS / editors
+.DS_Store
+Thumbs.db
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/.vite/
+frontend/cypress/videos/
+frontend/cypress/screenshots/
+frontend/cypress/downloads/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Backend
+backend/.venv/
+backend/venv/
+backend/__pycache__/
+backend/**/*.py[cod]
+backend/.pytest_cache/
+backend/.ruff_cache/
+backend/.mypy_cache/
+backend/htmlcov/
+backend/.coverage
+backend/coverage.xml
+backend/*.egg-info/
+backend/build/
+backend/dist/
+
+# Generated product artifacts (future cases of use)
+generated-backend/
+generated-mobile/
+artifacts/
+models-cache/
+
+# Local DB / Docker
+postgres-data/
+
+# Temporary files
+*.tmp
+*.temp
+*.log
