@@ -29,7 +29,7 @@ Versiones seleccionadas el **2026-09-08**. Se priorizan versiones estables y el 
 | pydantic-settings | 2.15.0 | carga reproducible de `backend/.env` |
 | PyJWT | 2.13.0 | autenticación futura |
 | pwdlib | 0.3.1 | hashing futuro |
-| PostgreSQL | 18.6 | local mediante Docker |
+| PostgreSQL | 18.6 | flujo validado: instalación local Windows en `localhost:5432`; Docker opcional publica `55432 -> 5432` |
 
 ## Dependencias deliberadamente no instaladas todavía
 

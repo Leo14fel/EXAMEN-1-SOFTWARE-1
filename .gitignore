@@ -12,10 +12,14 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+.venv/
+venv/
 *.pem
 *.key
 
 # Frontend
+node_modules/
+dist/
 frontend/node_modules/
 frontend/dist/
 frontend/coverage/
@@ -29,6 +33,10 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Backend
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
 backend/.venv/
 backend/venv/
 backend/__pycache__/
@@ -53,6 +61,7 @@ models-cache/
 postgres-data/
 
 # Temporary files
+examen-sw1-liviano*.zip
 *.tmp
 *.temp
 *.log

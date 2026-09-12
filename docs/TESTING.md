@@ -32,7 +32,11 @@ Smoke test inicial:
 - la aplicación monta;
 - muestra el estado de fundación.
 
-## Base de datos
+## Gate base sin infraestructura externa
+
+`scripts/check.ps1` ejecuta pytest, compileall, Ruff y pip check en backend; typecheck, Vitest y build en frontend. Falla ante cualquier comando nativo con código de salida distinto de cero.
+
+## Checks de integración con PostgreSQL
 
 Configuracion de desarrollo validada: PostgreSQL local de Windows en `localhost:5432`, base `examen_sw1`, usuario `postgres`. Para comprobarla:
 

@@ -1,7 +1,7 @@
 # Benchmark VLM — Imagen → UML
 
 ## Se usa en
-CU-21 y cambios de modelo, prompt, preprocesamiento o salida estructurada.
+CU-22 y cambios de modelo, prompt, preprocesamiento o salida estructurada.
 
 ## Configuración inicial fijada
 Qwen2.5-VL 3B Instruct local + Pillow + scikit-image.

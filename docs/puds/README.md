@@ -5,4 +5,4 @@ El proyecto usa el Proceso Unificado de Desarrollo de Software como guía práct
 Aquí “ciclo” es una agrupación de CUs que culmina en un incremento usable. Cada CU recorre requisitos/análisis, diseño, implementación, prueba y documentación, con máximo 3 incrementos internos.
 
 ## Flujo
-`product.md` → roadmap → plan CU → aprobación → prompt del agente → implementación → pruebas → correcciones → documentación → cierre → commit/push → siguiente CU.
+`/product.md` → `use-cases/IMPLEMENTATION-ROADMAP.md` → plan CU → aprobación → prompt del agente → implementación → pruebas → correcciones → documentación → cierre → commit/push → siguiente CU.

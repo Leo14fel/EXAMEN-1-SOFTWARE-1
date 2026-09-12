@@ -1,261 +1,173 @@
-# Roadmap PUDS — Casos de uso y ciclos
+# Roadmap PUDS - Casos de uso y ciclos
 
-## 1. Propósito
-Transforma `product.md` en una receta lineal de implementación. Los CUs guían requisitos, diseño, implementación, pruebas y documentación. `product.md` sigue siendo la fuente de verdad.
+## Proposito y reglas
 
-## 2. Reglas
-- Implementar en orden.
-- Un CU activo a la vez.
-- Máximo 3 incrementos por CU.
-- Cada incremento termina verificable.
-- No crear CUs separados solo por componentes técnicos; estos viven dentro del comportamiento que los necesita.
-- CU-00 es la excepción técnica de fundación solicitada.
-- Cada CU cerrado genera/actualiza `CU-XX-<slug>.md`.
-- Cierre = pruebas verdes + documentación sincronizada + comandos Git.
+Este roadmap deriva `/product.md` en una secuencia de implementacion. PUDS es la unica fuente de verdad para roadmap y documentos de casos de uso; `/product.md` sigue siendo la fuente de verdad de producto y stack.
 
-# CICLO 1 — Fundación y editor UML local
+- Implementar en orden, con un solo CU activo y un maximo de tres incrementos por CU.
+- Cada CU cerrado actualiza su `CU-XX-<slug>.md` con evidencia real.
+- No crear CUs por componentes tecnicos aislados, salvo CU-00 como fundacion solicitada.
+- Cierre: pruebas aplicables verdes, documentacion sincronizada y comandos Git sugeridos.
 
-**Incremento usable:** herramienta web local ejecutable capaz de mantener un documento UML en memoria, modelar clases/relaciones, editar el canvas, validar y usar Undo/Redo.
+# CICLO 1 - Nucleo UML y editor
 
-## CU-00 — Fundar el proyecto ejecutable
-**Objetivo:** crear la base del monorepo y demostrar frontend ↔ backend.
-**Actor:** equipo de desarrollo (fundación técnica).
+**Incremento usable:** una herramienta local mantiene un documento UML en memoria, modela clases y relaciones, valida, modifica por Command Bus y lo proyecta en un canvas.
+
+## CU-00 - Fundar el proyecto ejecutable
+**Estado:** DONE.
+**Objetivo:** crear el monorepo y demostrar frontend <-> backend.
 **Dependencias:** ninguna.
-**Product:** §§4, 34, 37–39.
-**Incluye:** repo Git/GitHub; `frontend/` Vue+TS+Vite+Vuetify; `backend/` Python 3.13+ + FastAPI; preparación PostgreSQL/Alembic sin dominio; `.env.example`; `.gitignore`; health; llamada frontend→health; tests/smoke; docs reproducibles.
-**No incluye:** UML, auth, realtime, IA, generación, Flutter.
-**Incrementos:** 2 — (1) estructura/arranque; (2) health/integración/tests/docs.
-**Cierre:** frontend y backend arrancan y frontend confirma health.
 
-## CU-01 — Crear un documento de proyecto UML canónico
-**Objetivo:** representar un proyecto separando semántica y layout.
-**Actor:** usuario de modelado.
+## CU-01 - ProjectDocument y Canonical UML Model
+**Objetivo:** representar un proyecto separando semantica y layout.
 **Dependencias:** CU-00.
-**Product:** §§3, 6, 7.
-**Incluye:** ProjectDocument, UmlModel, DiagramLayout, UUID, metadatos, revisión, timestamps y serialización estructural.
-**Incrementos:** 2.
-**Cierre:** crear/serializar/reconstruir documento sin contaminar UML con layout.
+**Product:** secciones 3, 6 y 7.
+**Incluye:** identidad estable con UUID, metadatos, ownership estructural, revision, timestamps, CanonicalUmlModel, DiagramLayout y serializacion estructural.
+**Cierre:** crear, serializar y reconstruir el documento sin contaminar la semantica UML con layout.
 
-## CU-02 — Modelar clases y miembros UML
-**Objetivo:** crear/editar/eliminar clases y miembros soportados.
-**Actor:** usuario de modelado.
+## CU-02 - Modelar clases y miembros UML
+**Objetivo:** crear, editar y eliminar clases y miembros soportados.
 **Dependencias:** CU-01.
-**Product:** §§7, 9.
-**Incluye:** Class, Attribute/Property, Operation, Visibility, tipos, Enumeration, Package cuando aplique y metadatos de generación separados.
-**Incrementos:** 2.
-**Cierre:** modelo modificable y testeado sin depender del canvas.
+**Incluye:** Class, Attribute/Property, Operation, Visibility, tipos, Enumeration, Package cuando aplique y metadatos de generacion separados.
 
-## CU-03 — Modelar relaciones UML
-**Objetivo:** crear/modificar relaciones válidas.
-**Actor:** usuario de modelado.
+## CU-03 - Modelar relaciones UML
+**Objetivo:** crear y modificar relaciones UML validas.
 **Dependencias:** CU-02.
-**Product:** §§7, 9.
-**Incluye:** Association, Aggregation, Composition, Generalization, Multiplicity.
-**Incrementos:** 2.
-**Cierre:** relaciones sobreviven serialización/reconstrucción.
+**Incluye:** Association, Aggregation, Composition, Generalization y Multiplicity.
 
-## CU-04 — Editar el diagrama desde el canvas
-**Objetivo:** proyectar/editar el documento con `@vue-flow/core` sin volver el canvas fuente de verdad.
-**Actor:** usuario de modelado.
-**Dependencias:** CU-01..03.
-**Product:** §§5, 5.1, 8, 9.
-**Incluye:** nodos custom, relaciones, zoom/pan/selección/movimiento, creación de relaciones, inspector, toolbox, fit, grid y d3-dag.
-**Incrementos:** 3.
-**Cierre:** edición UI termina en documento canónico.
+## CU-04 - Validar el modelo UML y navegar diagnosticos
+**Objetivo:** disponer de un unico motor de validacion y diagnosticos accionables.
+**Dependencias:** CU-02, CU-03.
+**Incluye:** severity, code, mensaje, path, referencia, bloqueo y navegacion UI cuando exista interfaz.
 
-## CU-05 — Validar el modelo UML y navegar diagnósticos
-**Objetivo:** único motor de validación + diagnósticos accionables.
-**Actor:** usuario de modelado.
+## CU-05 - Command Bus y Undo/Redo
+**Objetivo:** canalizar mutaciones por UmlCommand/UmlCommandBus/UmlCommandExecutor y soportar Undo/Redo.
 **Dependencias:** CU-02..04.
-**Product:** §10 y §5.1.
-**Incluye:** severity/code/mensaje/path/referencia, bloqueo y navegación UI.
-**Incrementos:** 2.
-**Cierre:** errores reproducibles y foco desde diagnóstico al elemento.
+**Incluye:** historial inicial configurable de 100 y estrategia de undo/redo.
+**Cierre:** toda mutacion soportada usa la ruta oficial y conserva consistencia al deshacer/rehacer.
 
-## CU-06 — Deshacer y rehacer modificaciones UML
-**Objetivo:** canalizar mutaciones por Command Bus y soportar Undo/Redo.
-**Actor:** usuario de modelado.
-**Dependencias:** CU-02..05.
-**Product:** §§9, 11.
-**Incluye:** UmlCommand, bus, executor, historial inicial configurable de 100 y estrategia Undo/Redo.
-**Incrementos:** 2.
-**Cierre:** comandos soportados deshacen/rehacen manteniendo consistencia.
+## CU-06 - Editar el diagrama desde el canvas
+**Objetivo:** proyectar y editar el documento con `@vue-flow/core` sin que el canvas sea fuente de verdad.
+**Dependencias:** CU-01..05.
+**Incluye:** nodos, relaciones, zoom/pan/seleccion/movimiento, inspector, toolbox, fit, grid y d3-dag; las mutaciones pasan por el Command Bus existente.
 
-# CICLO 2 — Persistencia, acceso y colaboración
+# CICLO 2 - Persistencia, acceso y colaboracion
 
-**Incremento usable:** usuario autenticado puede guardar/listar/abrir proyectos propios y colaborar con otro cliente con presencia, además de operar el host local/LAN base.
+**Incremento usable:** usuarios autorizados guardan, abren y comparten proyectos; los cambios y la presencia se sincronizan, con operacion local/LAN base.
 
-## CU-07 — Persistir y recuperar proyectos
-**Objetivo:** almacenar ProjectDocument con PostgreSQL y revisión optimista.
-**Actor:** usuario de modelado.
-**Dependencias:** CU-01, CU-05, CU-06.
-**Product:** §§6, 10, 20.
-**Incluye:** SQLAlchemy, Alembic, PostgreSQL, migraciones, guardado/lectura/revisión.
-**Incrementos:** 2.
-**Cierre:** reabrir conserva modelo/layout.
+## CU-07 - Persistir y recuperar proyectos
+**Objetivo:** almacenar ProjectDocument con PostgreSQL y revision optimista.
+**Dependencias:** CU-01, CU-04..06.
+**Incluye:** SQLAlchemy, Alembic, migraciones, guardado, lectura y revision.
 
-## CU-08 — Acceder y administrar proyectos propios
-**Objetivo:** autenticación, ownership y navegación de proyectos.
-**Actor:** visitante/usuario autenticado.
+## CU-08 - Autenticacion, ownership y administracion de proyectos
+**Objetivo:** autenticar usuarios y administrar sus propios proyectos.
 **Dependencias:** CU-07.
-**Product:** §§5, 20.
-**Incluye:** landing, registro/login, PyJWT, Argon2/pwdlib, listado/creación/apertura, ownerId y autorización.
-**Incrementos:** 3.
-**Cierre:** usuario solo accede a proyectos autorizados.
+**Incluye:** registro/login, PyJWT, Argon2/pwdlib, listado, creacion, apertura, ownerId y autorizacion.
 
-## CU-09 — Editar colaborativamente en tiempo real
+## CU-09 - Administrar acceso de colaboradores
+**Objetivo:** autorizar colaboradores de un proyecto antes de permitir colaboracion realtime.
+**Dependencias:** CU-08.
+**Incluye:** ProjectMembership, ProjectInvitation, roles, estado y expiracion de invitaciones, token y autorizacion de acceso.
+
+## CU-10 - Editar colaborativamente en tiempo real
 **Objetivo:** sincronizar operaciones con servidor autoritativo.
-**Actor:** participantes del proyecto.
-**Dependencias:** CU-06..08.
-**Product:** §17.
-**Incluye:** WebSockets, baseRevision, nueva revisión, persistencia inmediata, broadcast, obsoletos y recuperación autoritativa.
-**Incrementos:** 3.
-**Cierre:** dos clientes convergen al documento autoritativo.
+**Dependencias:** CU-05, CU-07..09.
+**Incluye:** WebSockets, baseRevision, nueva revision, persistencia inmediata, broadcast, rechazo de operaciones obsoletas y recuperacion autoritativa.
 
-## CU-10 — Mostrar presencia colaborativa
-**Objetivo:** presencia efímera sin incrementar revisión.
-**Actor:** participantes.
-**Dependencias:** CU-09.
-**Product:** §§5.1, 18.
-**Incluye:** sesión, selección, cursor, elemento en edición, actividad y UI de presencia.
-**Incrementos:** 2.
-**Cierre:** presencia visible sin mutar el documento.
+## CU-11 - Mostrar presencia colaborativa
+**Objetivo:** mostrar presencia efimera sin incrementar revision.
+**Dependencias:** CU-10.
+**Incluye:** sesion, seleccion, cursor, elemento en edicion, actividad y UI de presencia.
 
-## CU-11 — Operar capacidades esenciales offline y por LAN
-**Objetivo:** demostrar host + clientes LAN sin Internet para lo ya implementado.
-**Actor:** anfitrión/clientes LAN.
-**Dependencias:** CU-07..10.
-**Product:** §19 y requisito offline general.
-**Incluye:** configuración local/LAN, acceso, persistencia y realtime. IA/STT se revalida cuando exista.
-**Incrementos:** 2.
-**Cierre:** dos clientes usan capacidades implementadas por LAN sin Internet.
+## CU-12 - Operar capacidades esenciales offline y por LAN
+**Objetivo:** demostrar host y clientes LAN sin Internet para capacidades implementadas.
+**Dependencias:** CU-07..11.
+**Incluye:** configuracion local/LAN, acceso, persistencia y realtime; IA/STT se revalidan cuando existan.
 
-# CICLO 3 — Pipeline determinista y generación
+# CICLO 3 - Transformaciones y generacion deterministica
 
-**Incremento usable:** UML válido → modelo relacional → backend Spring Boot + OpenAPI/Postman/Manifest + app Flutter Android operativa para capacidades derivables.
+**Incremento usable:** UML valido produce modelo relacional, backend Spring Boot, OpenAPI/Postman/Manifest y aplicacion Flutter Android para capacidades derivables.
 
-## CU-12 — Transformar UML a modelo relacional
+## CU-13 - Transformar UML a modelo relacional
 **Objetivo:** producir RelationalModel determinista.
-**Actor:** usuario que genera.
-**Dependencias:** CU-05.
-**Product:** §21.
-**Incluye:** tablas/columnas/PK/FK/unique/indexes/relations y reglas 1:1, 1:N, N:M, composición, herencia, enums, nulabilidad/restricciones.
-**Incrementos:** 3.
-**Cierre:** mismo UML → mismo modelo relacional con tests.
+**Dependencias:** CU-04.
+**Incluye:** tablas, columnas, PK/FK, restricciones, indices y reglas para relaciones, herencia, enums y nulabilidad.
 
-## CU-13 — Generar backend Spring Boot
-**Objetivo:** generar backend Java compilable.
-**Actor:** usuario que genera.
-**Dependencias:** CU-12.
-**Product:** §§22, 23, 33.
-**Incluye:** Java21, Spring Boot4.x, Gradle, MVC, JPA/Hibernate, Validation, Jackson, PostgreSQL, Jinja2 y CRUD/capacidades declaradas.
-**Incrementos:** 3.
-**Cierre:** backend generado compila y ejecuta capacidades soportadas.
-
-## CU-14 — Generar OpenAPI, Postman y Domain Manifest
-**Objetivo:** producir artefactos coherentes del dominio generado.
-**Actor:** usuario/desarrollador consumidor.
+## CU-14 - Generar backend Spring Boot
+**Objetivo:** generar un backend Java compilable.
 **Dependencias:** CU-13.
-**Product:** §§25, 28, 33.
-**Incluye:** OpenAPI según product vigente, Postman derivado, Domain Manifest.
-**Incrementos:** 2.
-**Cierre:** artefactos consistentes y validables.
+**Incluye:** Java 21, Spring Boot 4.x, Gradle, MVC, Spring Data JPA/Hibernate, Validation, Jackson, PostgreSQL, Jinja2 y capacidades declaradas.
 
-## CU-15 — Generar aplicación móvil Flutter para Android
-**Objetivo:** generar app Flutter que consuma backend generado.
-**Actor:** usuario que genera/usuario final.
-**Dependencias:** CU-13, CU-14.
-**Product:** §§26, 27, 34, 36.
-**Incluye:** Flutter+Dart, Android, modelos/services/repositories/screens/widgets/forms, CRUD, filtros, paginación, relaciones, validaciones e inferencia UI.
-**Incrementos:** 3.
-**Cierre:** analyze/tests/build Android acordado verdes y app opera contra backend.
+## CU-15 - Generar OpenAPI, Postman y Domain Manifest
+**Objetivo:** producir artefactos coherentes del dominio generado.
+**Dependencias:** CU-14.
+**Incluye:** OpenAPI publicado por springdoc-openapi, Postman derivado y Domain Manifest.
 
-## CU-16 — Ejecutar y verificar el flujo de generación
-**Objetivo:** integrar UML válido hasta aplicación/artefactos compilables.
-**Actor:** usuario CASE.
-**Dependencias:** CU-12..15.
-**Product:** §§23, 34–36.
-**Incluye:** acción/UI de generación, validación previa, orquestación, verificación y demo CRUD.
-**Incrementos:** 2.
-**Cierre:** modelo de prueba recorre pipeline completo.
+## CU-16 - Generar aplicacion movil Flutter para Android
+**Objetivo:** generar una app Flutter que consuma el backend generado.
+**Dependencias:** CU-14, CU-15.
+**Incluye:** Flutter, Dart, Android, CRUD, filtros, paginacion, relaciones, validaciones e inferencia UI.
 
-# CICLO 4 — Asistentes, voz, XMI e imagen
+## CU-17 - Ejecutar y verificar el pipeline de generacion
+**Objetivo:** integrar UML valido hasta aplicaciones y artefactos compilables.
+**Dependencias:** CU-13..16.
+**Incluye:** accion/UI de generacion, validacion previa, orquestacion, verificacion y demo CRUD.
 
-**Incremento usable:** instrucciones por texto/voz, asistente generado, XMI e imagen→UML dentro del alcance soportado, con benchmarks reales.
+# CICLO 4 - IA, interoperabilidad, despliegue y aceptacion
 
-## CU-17 — Editar UML mediante lenguaje natural
-**Objetivo:** texto → intención estructurada → UmlCommand; IA nunca manipula canvas.
-**Actor:** usuario de modelado.
-**Dependencias:** CU-05, CU-06.
-**Product:** §§13, 14, 30, 32.
-**Incluye:** Qwen3 1.7B local, esquema cerrado, allow-lists, resolver, validación, bus y UI asistente.
-**Incrementos:** 3: baseline benchmark/esquema; modelo/prompt; resolver/UI/benchmark final.
-**Cierre:** benchmark documentado + comandos válidos por ruta única.
+**Incremento usable:** entradas asistidas e interoperabilidad funcionan dentro del alcance soportado; la herramienta puede desplegarse en AWS y el MVP se acepta integralmente.
 
-## CU-18 — Editar UML mediante voz
-**Objetivo:** audio breve → texto → reutilizar CU-17.
-**Actor:** usuario de modelado.
-**Dependencias:** CU-17.
-**Product:** §§13, 15.
-**Incluye:** faster-whisper/CTranslate2, captura, transcripción, comandos breves, integración y benchmark STT.
-**Incrementos:** 2.
-**Cierre:** audios documentados producen comandos equivalentes dentro del alcance aceptado.
+## CU-18 - Editar UML mediante lenguaje natural
+**Objetivo:** texto -> intencion estructurada -> UmlCommand; la IA no manipula canvas.
+**Dependencias:** CU-04, CU-05.
+**Incluye:** Qwen3 1.7B local, esquema cerrado, allow-lists, resolver, validacion, Command Bus, UI y benchmark.
 
-## CU-19 — Operar la aplicación generada mediante asistente
-**Objetivo:** ejecutar solo capacidades declaradas vía AssistantCommand.
-**Actor:** usuario de app generada.
-**Dependencias:** CU-14, CU-15, CU-17; CU-18 si usa voz.
-**Product:** §§28–32.
-**Incluye:** CommandValidator, Executor, LIST/GET/SEARCH/CREATE/UPDATE/DELETE/COUNT, planes cortos y seguridad.
-**Incrementos:** 3.
-**Cierre:** solo entidades/campos/operaciones allow-listed se ejecutan.
+## CU-19 - Editar UML mediante voz
+**Objetivo:** audio breve -> texto -> reutilizar CU-18.
+**Dependencias:** CU-18.
+**Incluye:** faster-whisper/CTranslate2, captura, transcripcion, comandos breves, integracion y benchmark STT.
 
-## CU-20 — Importar y exportar XMI
-**Objetivo:** interoperar con XMI 2.1/Enterprise Architect en el subconjunto soportado.
-**Actor:** usuario de modelado.
-**Dependencias:** CU-05.
-**Product:** §16.
-**Incluye:** lxml/iterparse, importación→validación→modelo, exportación y round-trip donde aplique.
-**Incrementos:** 2.
-**Cierre:** subconjunto documentado importa/exporta reproduciblemente.
+## CU-20 - Operar la aplicacion generada mediante asistente
+**Objetivo:** ejecutar solo capacidades declaradas via AssistantCommand.
+**Dependencias:** CU-15..16, CU-18; CU-19 si usa voz.
+**Incluye:** CommandValidator, Executor, operaciones allow-listed, planes cortos y seguridad.
 
-## CU-21 — Crear UML desde imagen
-**Objetivo:** imagen → estructura UML → validación → modelo canónico.
-**Actor:** usuario de modelado.
-**Dependencias:** CU-05, CU-06.
-**Product:** §§12, 14, 34, 36.
-**Incluye:** Pillow/scikit-image, Qwen2.5-VL 3B, clases/atributos/relaciones/multiplicidades/herencia según capacidad, salida estructurada y benchmark VLM.
-**Incrementos:** 3: dataset/baseline; VLM→estructura; validación/aplicación/edge cases/benchmark final.
-**Cierre:** benchmark y pruebas manuales documentan capacidad y límites reales.
+## CU-21 - Importar y exportar XMI
+**Objetivo:** interoperar con XMI 2.1 y Enterprise Architect en el subconjunto soportado.
+**Dependencias:** CU-04.
+**Incluye:** lxml/iterparse, importacion, validacion, modelo, exportacion y round-trip cuando aplique.
+
+## CU-22 - Crear UML desde imagen
+**Objetivo:** imagen -> estructura UML -> validacion -> modelo canonico.
+**Dependencias:** CU-04, CU-05.
+**Incluye:** Pillow/scikit-image, Qwen2.5-VL 3B, salida estructurada y benchmark VLM.
+
+## CU-23 - Desplegar la herramienta CASE en AWS
+**Objetivo:** desplegar la herramienta CASE conforme al requisito de producto.
+**Dependencias:** CU-07..12.
+**Incluye:** frontend Vue, backend FastAPI, PostgreSQL, configuracion y secretos externos al codigo, procedimiento documentado y smoke tests. La seleccion de servicios AWS se decide en este CU.
+
+## CU-24 - Validar integralmente el MVP
+**Objetivo:** aceptar el producto mediante evidencia de sus flujos finales.
+**Dependencias:** CU-12, CU-17, CU-20..23.
+**Incluye:** crear, validar, guardar y reabrir UML; colaborar; generar artefactos; compilar backend generado y Flutter cuando corresponda; OpenAPI/Postman; texto, voz e imagen a UML; XMI; offline final y LAN cuando corresponda; escenarios E2E con Cypress.
+**Cierre:** evidencia real del flujo completo del MVP, sin resultados ficticios.
 
 # Dependencias resumidas
+
 ```text
-CU-00
-  ↓
-CU-01 → CU-02 → CU-03 → CU-04 → CU-05 → CU-06
-                                   │
-                                   ↓
-CU-07 → CU-08 → CU-09 → CU-10 → CU-11
-   │
-   └────────────→ CU-12 → CU-13 → CU-14 → CU-15 → CU-16
-                         │
-                         ├────────→ CU-19
-CU-05 → CU-06 → CU-17 → CU-18 ────┘
-   │
-   ├────────────→ CU-20
-   └────────────→ CU-21
+CU-00 -> CU-01 -> CU-02 -> CU-03 -> CU-04 -> CU-05 -> CU-06
+                              |                 |
+                              +-> CU-13 -> CU-14 -> CU-15 -> CU-16 -> CU-17
+CU-06 -> CU-07 -> CU-08 -> CU-09 -> CU-10 -> CU-11 -> CU-12
+CU-05 -> CU-18 -> CU-19
+CU-15 + CU-18 -> CU-20
+CU-04 -> CU-21, CU-22
+CU-07..12 -> CU-23
+CU-12 + CU-17 + CU-20..23 -> CU-24
 ```
 
 # Documento real de cada CU
-Al iniciar un CU crear `docs/puds/use-cases/CU-XX-<slug>.md` desde `CU-TEMPLATE.md`. El roadmap describe intención; el documento del CU registra lo realmente implementado.
 
-# Cierre de ciclo
-- todos los CUs `DONE`;
-- tests/lint/typecheck/build verdes;
-- incremento usable demostrable;
-- documentación sincronizada;
-- deuda conocida explícita;
-- ninguna decisión relevante vive solo en el chat.
-
-# Punto pendiente: AWS
-El `product.md` usado para derivar este roadmap no contiene una especificación AWS. No se crea un CU AWS ni se eligen servicios cloud aquí. Si AWS es requisito del docente, primero actualizar `product.md`; después se añadirá el CU de despliegue de forma controlada.
+Al iniciar un CU se crea `docs/puds/use-cases/CU-XX-<slug>.md` desde `CU-TEMPLATE.md`. El roadmap describe intencion; el documento del CU registra lo realmente implementado.

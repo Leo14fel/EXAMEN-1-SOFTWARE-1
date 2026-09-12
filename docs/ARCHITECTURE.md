@@ -55,7 +55,8 @@ La aplicación Flutter generada no debe confundirse con el frontend web Vue del 
 - Vue Flow y d3-dag instalados pero sin inventar el editor UML;
 - smoke test frontend;
 - smoke test backend;
-- PostgreSQL local mediante Docker Compose y variables de entorno.
+- PostgreSQL local de Windows validado en `localhost:5432/examen_sw1`.
+- Docker Compose como alternativa reproducible opcional en `localhost:55432` hacia `5432` dentro del contenedor.
 
 ## Regla de evolución
 

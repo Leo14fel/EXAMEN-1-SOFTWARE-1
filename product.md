@@ -105,7 +105,7 @@ El canvas nunca será la fuente de verdad.
 - Enterprise Architect como herramienta objetivo de interoperabilidad
 - lxml con iterparse
 - Jinja2
-- OpenAPI 3.1 generado por FastAPI
+- springdoc-openapi para el OpenAPI del backend Spring Boot generado
 
 ### IA, visión y voz
 
@@ -671,6 +671,22 @@ No se requerirá Internet para usar el editor, colaborar en LAN, ejecutar IA/STT
 
 ---
 
+## 19.1 Despliegue AWS
+
+El producto tendrá un despliegue en AWS. El servicio o combinación exacta de servicios AWS se decidirá en el caso de uso de despliegue correspondiente, sin fijar infraestructura antes de ese momento.
+
+El despliegue deberá contemplar:
+
+- frontend Vue;
+- backend FastAPI de la herramienta CASE;
+- PostgreSQL;
+- configuración y secretos externos al código;
+- smoke tests del despliegue.
+
+El despliegue cloud no reemplaza las capacidades esenciales locales/offline del producto.
+
+---
+
 ## 20. Persistencia, autenticación y ownership
 
 Persistencia principal:
@@ -820,20 +836,24 @@ Esto permitirá resolver de forma determinista expresiones como:
 - recientes;
 - modificados recientemente.
 
-La implementación de auditoría se adaptará a **SQLAlchemy 2.0 + Alembic**.
+La implementación de auditoría del backend generado se adaptará a **Spring Data JPA + Hibernate**. SQLAlchemy 2.0 + Alembic pertenecen al backend FastAPI de la herramienta CASE.
 
 ---
 
 ## 25. OpenAPI y colección Postman obligatoria
 
-La especificación se generará mediante:
+La especificación del backend generado se publicará mediante:
 
-**OpenAPI 3.1 generado por FastAPI**
+**springdoc-openapi sobre el backend Spring Boot generado**
 
 Flujo:
 
 ```text
-Backend generado
+UML
+       ↓
+Backend Spring Boot generado
+       ↓
+springdoc-openapi
        ↓
 OpenAPI
        ↓
@@ -1253,7 +1273,7 @@ Interoperabilidad
 
 Generación
 - Jinja2
-- OpenAPI 3.1 generado por FastAPI
+- springdoc-openapi para el OpenAPI del backend Spring Boot generado
 - OpenAPI
 - Postman
 - Domain Manifest

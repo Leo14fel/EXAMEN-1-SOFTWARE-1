@@ -4,7 +4,7 @@
 
 **No implementado en la fundación.**
 
-El examen requiere despliegue en AWS. Esta capacidad se trabajará en su propio caso de uso/ciclo para no mezclar infraestructura con la construcción inicial del dominio.
+El requisito de AWS está incorporado en `/product.md`. Esta capacidad se trabajará en CU-23 para no mezclar infraestructura con la construcción inicial del dominio.
 
 ## Alcance mínimo esperado cuando llegue el CU
 

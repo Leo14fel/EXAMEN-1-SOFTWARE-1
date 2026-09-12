@@ -18,8 +18,26 @@ Flutter no reemplaza Vue. Flutter corresponde únicamente a la salida móvil And
 
 No se instalan modelos/runtime pesados en la fundación. Se agregarán cuando exista un CU que los necesite.
 
-## ADR-lite 004 — PostgreSQL mediante Docker en desarrollo
+## ADR-lite 004 — PostgreSQL local validado y Docker opcional
 
 **Estado:** aceptada
 
-Se usa Docker Compose para reducir diferencias de instalación local y facilitar pruebas reproducibles.
+El flujo de desarrollo validado usa PostgreSQL local de Windows en `localhost:5432/examen_sw1`. Docker Compose se conserva como alternativa reproducible y publica `localhost:55432` hacia el puerto `5432` del contenedor; no es requisito para desarrollar.
+
+## ADR-lite 005 — Fuentes documentales de verdad
+
+**Estado:** aceptada
+
+`/product.md` es la fuente principal de requisitos y stack. `docs/puds/` es la fuente unica de roadmap y casos de uso; no se mantienen roadmaps alternativos.
+
+## ADR-lite 006 — Command Bus antes del canvas mutable
+
+**Estado:** aceptada
+
+El Command Bus y Undo/Redo se implementan antes del canvas para que toda mutacion del editor use desde el inicio `UmlCommand -> UmlCommandBus -> UmlCommandExecutor -> ProjectDocument`.
+
+## ADR-lite 007 — AWS diferido a su CU de despliegue
+
+**Estado:** aceptada
+
+AWS es un requisito de producto. La seleccion de servicios se difiere al CU de despliegue, que debe contemplar Vue, FastAPI, PostgreSQL, secretos externos y smoke tests sin reemplazar las capacidades locales/offline.

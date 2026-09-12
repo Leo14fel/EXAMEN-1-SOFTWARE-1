@@ -15,6 +15,7 @@ Este documento registra restricciones que deben mantenerse explícitas durante e
 ## AWS
 
 - La solución deberá poder desplegarse en **AWS**.
+- El requisito también está incorporado en `/product.md`; este documento no es una fuente alternativa de producto.
 - La selección concreta de servicios AWS se documentará y decidirá cuando llegue el caso de uso de despliegue, evitando introducir infraestructura prematuramente.
 - El despliegue cloud no debe borrar el requisito de capacidades esenciales locales/offline indicado en `product.md`.
 

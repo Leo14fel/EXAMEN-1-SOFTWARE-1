@@ -120,7 +120,6 @@ cd backend
 .\.venv\Scripts\python.exe -m compileall app
 .\.venv\Scripts\python.exe -m ruff check .
 .\.venv\Scripts\python.exe -m pip check
-.\.venv\Scripts\python.exe -m alembic check
 ```
 
 Con backend iniciado, valide los endpoints:
@@ -128,6 +127,7 @@ Con backend iniciado, valide los endpoints:
 ```powershell
 curl.exe http://localhost:8000/health
 curl.exe http://localhost:8000/health/db
+.\.venv\Scripts\python.exe -m alembic check
 ```
 
 ## Problemas comunes

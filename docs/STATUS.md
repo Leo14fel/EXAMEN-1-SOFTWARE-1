@@ -10,6 +10,7 @@ Fecha de actualizacion: 2026-09-12
 - [x] Alembic, tests frontend/backend, typecheck, build y Ruff en verde.
 - [x] Integracion visual Vue -> FastAPI verificada.
 - [x] Docker Compose documentado como alternativa opcional (`55432` en host -> `5432` en contenedor).
+- [x] Auditoría previa a CU-01: producto, roadmap PUDS, arquitectura, decisiones y gate base alineados.
 
 ## No implementado todavía
 
@@ -26,4 +27,4 @@ Fecha de actualizacion: 2026-09-12
 
 ## Próximo paso
 
-Preparar y aprobar el plan de CU-01. No iniciar su implementacion todavia.
+CU-01: NEXT / NOT_STARTED. Preparar y aprobar su plan; no iniciar su implementacion todavia.

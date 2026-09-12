@@ -1,64 +1,31 @@
 # Contexto de continuidad del proyecto
 
 ## Uso
-Este archivo debe acompañar un ZIP/snapshot actualizado del repositorio cuando se cambie de chat. El estado real se obtiene del código y la documentación del ZIP, no de recuerdos previos.
 
-## Producto
-Herramienta CASE colaborativa y offline-first para modelado UML de clases. Mantiene una representación canónica y desde ella genera artefactos/aplicaciones. Incluye edición manual, texto, voz, imagen e interoperabilidad XMI según `product.md`.
+Este archivo acompaña snapshots del repositorio. El estado real se obtiene del código y la documentación del snapshot.
 
-## Stack fijado
-### Aplicación principal
-- Vue 3 + TypeScript + Vite
-- Vuetify 3
-- `@vue-flow/core`
-- d3-dag
-- Pinia
-- Python 3.13+ + FastAPI
-- SQLAlchemy 2.0 + Alembic + PostgreSQL
-- WebSockets de FastAPI
+## Producto y stack
 
-### Generación
-- Jinja2
-- backend generado: Java 21 + Spring Boot 4.x + Gradle + Spring Data JPA/Hibernate + PostgreSQL
-- mobile generado: Flutter + Dart para Android
-- OpenAPI, Postman y Domain Manifest según `product.md`
+La herramienta CASE es colaborativa y offline-first para modelado UML de clases. `/product.md` es la fuente de verdad del producto y stack: Vue 3 + TypeScript + Vite + Vuetify en la herramienta web; FastAPI + SQLAlchemy + Alembic + PostgreSQL en su backend; Java 21 + Spring Boot 4.x + Spring Data JPA/Hibernate para backend generado; Flutter/Dart para Android generado.
 
-### IA / interoperabilidad
-- Qwen3 1.7B Instruct local para texto
-- Qwen2.5-VL 3B Instruct local para imagen → UML
-- Hugging Face Transformers + PyTorch
-- faster-whisper sobre CTranslate2
-- XMI 2.1 / Enterprise Architect como objetivo de interoperabilidad
+## Estado actual
 
-## Flutter
-Flutter NO reemplaza el frontend web principal. Vue es la herramienta CASE web; Flutter es únicamente la salida móvil generada.
+CU-00 está DONE. Implementa monorepo, health, integración Vue -> FastAPI, PostgreSQL local y checks básicos; no implementa UML ni funcionalidades posteriores.
 
-## Flujo acordado por CU
-1. Usuario pide plan de CU-X.
-2. Asistente explica objetivo, dependencias, alcance, decisiones ya fijadas, pruebas y documentación.
-3. Si es grande, se divide en máximo 3 incrementos.
-4. Usuario aprueba el plan.
-5. Asistente entrega prompt detallado para el agente.
-6. Agente modifica código/docs.
-7. Usuario corre tests y pruebas manuales.
-8. Se corrigen UI, tests, fallos y ajustes; cada iteración actualiza la doc del CU cuando corresponda.
-9. Se repite hasta aceptación.
-10. Se cierra el documento `CU-XX-<slug>.md` con evidencia real.
-11. Asistente entrega comandos de commit/push.
-12. Se pasa al siguiente CU.
+La base validada es PostgreSQL local de Windows: `localhost:5432/examen_sw1`, usuario `postgres`. Docker Compose es opcional y publica `localhost:55432` hacia `5432` dentro del contenedor.
 
-No generar el prompt de implementación antes de la aprobación del plan.
+## Flujo por CU
 
-## Documentación por CU
-Cada CU real vive en `docs/puds/use-cases/CU-XX-<slug>.md` e incluye objetivo, actores, dependencias, alcance/fuera de alcance, plan aprobado, incrementos, diseño usado, implementación, archivos afectados, pruebas, resultados, fallos/correcciones, benchmarks, documentación, deuda, aceptación y comandos Git.
+1. Revisar `/product.md`, el roadmap PUDS y el CU activo.
+2. Aprobar el plan del CU antes de implementar.
+3. Implementar un CU por vez en hasta tres incrementos verificables.
+4. Registrar evidencia real, deuda y documentación al cerrar cada incremento.
+5. Entregar comandos Git al cerrar el CU sin ejecutarlos salvo petición explícita.
 
-La documentación final se reutilizará para el informe académico y debe coincidir al 100% con la implementación.
+## Roadmap
+
+`docs/puds/` es la única fuente de roadmap y CUs. CU-01 es NEXT / NOT_STARTED. La auditoría previa estableció validación antes del Command Bus y Command Bus antes del canvas mutable. CU-09 administra acceso de colaboradores antes de CU-10 realtime. AWS es requisito de producto y se implementará en CU-23 sin elegir servicios antes de ese CU; CU-24 ejecutará la aceptación integral del MVP.
 
 ## Benchmarks
-Viven en `docs/benchmarks/`. Nunca inventar accuracy, latencia o uso de recursos. Registrar resultados de ejecuciones reales y preservar comparaciones.
 
-## CU-00
-Es una excepción técnica de fundación: monorepo/repo, frontend y backend mínimos, health, integración frontend → backend, `.gitignore`, configuración, tests mínimos y documentación. No adelanta UML.
-
-## Punto pendiente detectado
-El `product.md` adjunto usado para crear este contexto no contiene una especificación AWS. Si AWS es requisito del docente, debe añadirse primero a `product.md` como requisito/decisión aprobada antes de derivar un CU de despliegue. No inventar servicios AWS desde este contexto.
+Los benchmarks de LLM, STT y VLM viven en `docs/benchmarks/`. Registrar únicamente mediciones reales, configuración, hardware, fecha y edge cases manuales.

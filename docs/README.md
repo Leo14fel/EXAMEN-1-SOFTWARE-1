@@ -10,14 +10,13 @@ Esta carpeta separa la **visión estable del producto** del estado real de imple
 | `STACK.md` | Versiones base seleccionadas y criterio de actualización. |
 | `WORKFLOW.md` | Forma de trabajo incremental con OpenCode/OpenSpec. |
 | `TESTING.md` | Estrategia mínima de pruebas y gates antes de avanzar. |
-| `CYCLES.md` | Plantilla para los 4 ciclos. Se completa al derivar casos de uso. |
-| `puds/use-cases/IMPLEMENTATION-ROADMAP.md` | Orden, dependencias y alcance de los CUs. |
+| `puds/use-cases/IMPLEMENTATION-ROADMAP.md` | Fuente única del orden, dependencias y alcance de los CUs. |
 | `puds/use-cases/CU-00-project-foundation.md` | Estado y evidencia real de la fundacion. |
 | `puds/use-cases/CU-TEMPLATE.md` | Plantilla para documentar los CUs siguientes. |
 | `STATUS.md` | Estado real del repositorio. |
 | `HANDOFF.md` | Último punto estable y siguiente paso. |
 | `DECISIONS.md` | Registro corto de decisiones arquitectónicas relevantes. |
-| `deployment/AWS.md` | Alcance del despliegue AWS para cuando corresponda implementarlo. |
+| `deployment/AWS.md` | Alcance aprobado del despliegue AWS, a implementar en CU-23. |
 
 ## Regla principal
 

@@ -1,7 +1,7 @@
 # Benchmark STT — Voz → texto/intención
 
 ## Se usa en
-CU-18 y cambios posteriores de configuración STT.
+CU-19 y cambios posteriores de configuración STT.
 
 ## Configuración fijada
 faster-whisper sobre CTranslate2 para comandos breves.

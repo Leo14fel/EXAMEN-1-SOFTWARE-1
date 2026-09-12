@@ -1,7 +1,7 @@
 # Benchmark LLM — Texto → intención/comando
 
 ## Se usa en
-CU-17 y cualquier cambio posterior de modelo, prompt, esquema o parámetros.
+CU-18 y cualquier cambio posterior de modelo, prompt, esquema o parámetros.
 
 ## Configuración inicial fijada
 Qwen3 1.7B Instruct local con Hugging Face Transformers + PyTorch.
