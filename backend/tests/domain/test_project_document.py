@@ -9,7 +9,9 @@ from app.domain.uml.models import (
     DiagramLayout,
     DiagramNodeLayout,
     ProjectDocument,
+    UmlClass,
     UmlElementBase,
+    UmlVisibility,
 )
 
 OWNER_ID = UUID("b839adc0-64ae-4d66-9eb9-caa55d8918d8")
@@ -103,7 +105,7 @@ def test_layout_allows_negative_coordinates_and_requires_positive_size() -> None
 
 
 def test_accepts_element_with_or_without_layout() -> None:
-    element = UmlElementBase(id=ELEMENT_ID, kind="future-kind")
+    element = UmlClass(id=ELEMENT_ID, name="FutureClass", visibility=UmlVisibility.PUBLIC)
     model = CanonicalUmlModel(elements=[element])
     layout = DiagramNodeLayout(x=100, y=200, width=220, height=160)
 
@@ -132,7 +134,16 @@ def test_public_aliases_and_round_trip_json() -> None:
         document_payload(
             id=str(uuid4()),
             metadata={"active": True},
-            umlModel={"elements": [{"id": str(ELEMENT_ID), "kind": "future-kind"}]},
+            umlModel={
+                "elements": [
+                    {
+                        "id": str(ELEMENT_ID),
+                        "kind": "class",
+                        "name": "FutureClass",
+                        "visibility": "public",
+                    }
+                ]
+            },
             diagramLayout={
                 "nodes": {str(ELEMENT_ID): {"x": 100, "y": 200, "width": 220, "height": 160}}
             },

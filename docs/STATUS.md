@@ -15,7 +15,7 @@ Fecha de actualizacion: 2026-09-12
 ## No implementado todavía
 
 - [x] CU-01 terminado: ProjectDocument, CanonicalUmlModel y DiagramLayout en memoria.
-- [ ] Clases y miembros UML concretos (CU-02).
+- [x] CU-02 terminado: clases, atributos, operaciones y parametros UML.
 - [ ] Persistencia de proyectos.
 - [ ] Auth/ownership.
 - [ ] Canvas UML funcional.
@@ -27,4 +27,4 @@ Fecha de actualizacion: 2026-09-12
 
 ## Próximo paso
 
-CU-00: DONE. CU-01: DONE. CU-02: NEXT / NOT_STARTED.
+CU-00: DONE. CU-01: DONE. CU-02: DONE. CU-03: NEXT / NOT_STARTED.

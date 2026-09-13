@@ -49,3 +49,9 @@ AWS es un requisito de producto. La seleccion de servicios se difiere al CU de d
 `ProjectDocument` es el contenedor central del dominio: UUID estable, metadata JSON-safe, `ownerId` estructural sin autenticacion, revision reservada para concurrencia optimista y timestamps timezone-aware. Pydantic 2 define validacion, serializacion con aliases publicos y rechazo de campos desconocidos.
 
 `CanonicalUmlModel` es la unica fuente semantica. `DiagramLayout` se mantiene separado y solo referencia UUIDs de elementos existentes; no contiene semantica UML.
+
+## ADR-lite 009 - Clases y miembros UML tipados
+
+**Estado:** aceptada
+
+CU-02 representa clases, atributos, operaciones y parametros con modelos Pydantic tipados y `kind` estable. La visibilidad usa `UmlVisibility`; tipos y nombres son strings semanticos no vacios. La ausencia de `returnType` se representa con `null`/`None`; los generadores futuros la mapearan al equivalente del lenguaje destino. Los UUID son globalmente unicos en `CanonicalUmlModel`; relaciones y validaciones entre clases se difieren a CUs posteriores.

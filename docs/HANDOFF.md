@@ -2,11 +2,11 @@
 
 ## Último punto estable
 
-CU-00 y CU-01 cerrados. El stack instalado es Vue 3 + TypeScript + Vite + Vuetify y Python + FastAPI + SQLAlchemy + Alembic. La evidencia de CU-01 vive en `puds/use-cases/CU-01-project-document-canonical-uml.md`.
+CU-00, CU-01 y CU-02 cerrados. El stack instalado es Vue 3 + TypeScript + Vite + Vuetify y Python + FastAPI + SQLAlchemy + Alembic. La evidencia de CU-02 vive en `puds/use-cases/CU-02-uml-classes-members.md`.
 
 ## Próximo paso exacto
 
-CU-02 es NEXT / NOT_STARTED; preparar y aprobar su plan sin iniciar su implementacion todavia.
+CU-03 es NEXT / NOT_STARTED; preparar y aprobar su plan sin iniciar su implementacion todavia.
 
 ## Motivo de la reorganizacion
 
@@ -14,7 +14,7 @@ PUDS es la unica fuente de roadmap. El orden ahora garantiza validacion antes de
 
 ## Dominio actual
 
-`ProjectDocument` contiene UUID, metadata JSON-safe, ownerId estructural, revision, timestamps UTC, `CanonicalUmlModel` y `DiagramLayout`. El modelo canonico mantiene semantica; el layout solo posiciones y dimensiones por UUID. No hay clases UML concretas, persistencia, API ni Command Bus.
+`ProjectDocument` contiene UUID, metadata JSON-safe, ownerId estructural, revision, timestamps UTC, `CanonicalUmlModel` y `DiagramLayout`. El modelo canonico mantiene clases, atributos, operaciones y parametros; el layout solo posiciones y dimensiones por UUID. No hay relaciones, persistencia, API ni Command Bus.
 
 ## PostgreSQL actual
 

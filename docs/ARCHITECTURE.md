@@ -69,6 +69,8 @@ ProjectDocument
 
 `CanonicalUmlModel` es la fuente semántica canónica y conserva elementos UML identificados. `DiagramLayout` contiene exclusivamente posiciones y tamaños visuales asociados a esos UUIDs. El layout no es fuente de verdad y no contiene semántica UML.
 
+Actualmente los elementos top-level son `UmlClass`, con atributos, operaciones y parametros tipados. La identidad UUID es global dentro del modelo canonico. Relaciones entre clases y otros elementos top-level no estan implementados.
+
 Las entradas futuras manual, texto, voz, imagen y XMI deberán producir o modificar el modelo canónico mediante los mecanismos definidos por el roadmap; esos adaptadores no están implementados todavía.
 
 ## Regla de evolución

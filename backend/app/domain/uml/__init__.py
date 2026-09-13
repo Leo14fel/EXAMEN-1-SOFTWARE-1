@@ -3,7 +3,12 @@ from app.domain.uml.models import (
     DiagramLayout,
     DiagramNodeLayout,
     ProjectDocument,
+    UmlAttribute,
+    UmlClass,
     UmlElementBase,
+    UmlOperation,
+    UmlParameter,
+    UmlVisibility,
 )
 
 __all__ = [
@@ -11,5 +16,10 @@ __all__ = [
     "DiagramLayout",
     "DiagramNodeLayout",
     "ProjectDocument",
+    "UmlAttribute",
+    "UmlClass",
     "UmlElementBase",
+    "UmlOperation",
+    "UmlParameter",
+    "UmlVisibility",
 ]

@@ -27,12 +27,13 @@ Este roadmap deriva `/product.md` en una secuencia de implementacion. PUDS es la
 **Cierre:** crear, serializar y reconstruir el documento sin contaminar la semantica UML con layout.
 
 ## CU-02 - Modelar clases y miembros UML
-**Estado:** NEXT / NOT_STARTED.
+**Estado:** DONE.
 **Objetivo:** crear, editar y eliminar clases y miembros soportados.
 **Dependencias:** CU-01.
 **Incluye:** Class, Attribute/Property, Operation, Visibility, tipos, Enumeration, Package cuando aplique y metadatos de generacion separados.
 
 ## CU-03 - Modelar relaciones UML
+**Estado:** NEXT / NOT_STARTED.
 **Objetivo:** crear y modificar relaciones UML validas.
 **Dependencias:** CU-02.
 **Incluye:** Association, Aggregation, Composition, Generalization y Multiplicity.

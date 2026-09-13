@@ -1,4 +1,6 @@
 from datetime import UTC, datetime
+from enum import StrEnum
+from typing import Literal
 from uuid import UUID, uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator, model_validator
@@ -21,14 +23,84 @@ class UmlElementBase(DomainModel):
         return normalized_value
 
 
+class UmlVisibility(StrEnum):
+    PUBLIC = "public"
+    PRIVATE = "private"
+    PROTECTED = "protected"
+    PACKAGE = "package"
+
+
+class UmlNamedElement(DomainModel):
+    name: str
+
+    @field_validator("name")
+    @classmethod
+    def normalize_name(cls, value: str) -> str:
+        return normalize_non_blank(value, "name")
+
+
+class UmlTypedElement(UmlNamedElement):
+    type: str
+
+    @field_validator("type")
+    @classmethod
+    def normalize_type(cls, value: str) -> str:
+        return normalize_non_blank(value, "type")
+
+
+def normalize_non_blank(value: str, field_name: str) -> str:
+    normalized_value = value.strip()
+    if not normalized_value:
+        raise ValueError(f"{field_name} must not be blank")
+    return normalized_value
+
+
+class UmlParameter(UmlTypedElement):
+    id: UUID = Field(default_factory=uuid4)
+
+
+class UmlAttribute(UmlElementBase, UmlTypedElement):
+    kind: Literal["attribute"] = "attribute"
+    visibility: UmlVisibility
+
+
+class UmlOperation(UmlElementBase, UmlNamedElement):
+    kind: Literal["operation"] = "operation"
+    visibility: UmlVisibility
+    parameters: list[UmlParameter] = Field(default_factory=list)
+    return_type: str | None = Field(default=None, alias="returnType")
+
+    @field_validator("return_type")
+    @classmethod
+    def normalize_return_type(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return normalize_non_blank(value, "return_type")
+
+
+class UmlClass(UmlElementBase, UmlNamedElement):
+    kind: Literal["class"] = "class"
+    visibility: UmlVisibility
+    attributes: list[UmlAttribute] = Field(default_factory=list)
+    operations: list[UmlOperation] = Field(default_factory=list)
+
+
 class CanonicalUmlModel(DomainModel):
-    elements: list[UmlElementBase] = Field(default_factory=list)
+    elements: list[UmlClass] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def require_unique_element_ids(self) -> "CanonicalUmlModel":
-        element_ids = [element.id for element in self.elements]
-        if len(element_ids) != len(set(element_ids)):
-            raise ValueError("elements must have unique ids")
+        semantic_ids: list[UUID] = []
+        for uml_class in self.elements:
+            semantic_ids.append(uml_class.id)
+            for attribute in uml_class.attributes:
+                semantic_ids.append(attribute.id)
+            for operation in uml_class.operations:
+                semantic_ids.append(operation.id)
+                semantic_ids.extend(parameter.id for parameter in operation.parameters)
+
+        if len(semantic_ids) != len(set(semantic_ids)):
+            raise ValueError("semantic elements must have globally unique ids")
         return self
 
 
