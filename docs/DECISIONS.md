@@ -41,3 +41,11 @@ El Command Bus y Undo/Redo se implementan antes del canvas para que toda mutacio
 **Estado:** aceptada
 
 AWS es un requisito de producto. La seleccion de servicios se difiere al CU de despliegue, que debe contemplar Vue, FastAPI, PostgreSQL, secretos externos y smoke tests sin reemplazar las capacidades locales/offline.
+
+## ADR-lite 008 - Contrato de dominio ProjectDocument
+
+**Estado:** aceptada
+
+`ProjectDocument` es el contenedor central del dominio: UUID estable, metadata JSON-safe, `ownerId` estructural sin autenticacion, revision reservada para concurrencia optimista y timestamps timezone-aware. Pydantic 2 define validacion, serializacion con aliases publicos y rechazo de campos desconocidos.
+
+`CanonicalUmlModel` es la unica fuente semantica. `DiagramLayout` se mantiene separado y solo referencia UUIDs de elementos existentes; no contiene semantica UML.

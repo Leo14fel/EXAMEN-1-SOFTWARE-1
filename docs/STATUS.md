@@ -14,8 +14,8 @@ Fecha de actualizacion: 2026-09-12
 
 ## No implementado todavía
 
-- [ ] Casos de uso funcionales.
-- [ ] Dominio UML.
+- [x] CU-01 terminado: ProjectDocument, CanonicalUmlModel y DiagramLayout en memoria.
+- [ ] Clases y miembros UML concretos (CU-02).
 - [ ] Persistencia de proyectos.
 - [ ] Auth/ownership.
 - [ ] Canvas UML funcional.
@@ -27,4 +27,4 @@ Fecha de actualizacion: 2026-09-12
 
 ## Próximo paso
 
-CU-01: NEXT / NOT_STARTED. Preparar y aprobar su plan; no iniciar su implementacion todavia.
+CU-00: DONE. CU-01: DONE. CU-02: NEXT / NOT_STARTED.

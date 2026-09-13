@@ -19,6 +19,7 @@ Este roadmap deriva `/product.md` en una secuencia de implementacion. PUDS es la
 **Dependencias:** ninguna.
 
 ## CU-01 - ProjectDocument y Canonical UML Model
+**Estado:** DONE.
 **Objetivo:** representar un proyecto separando semantica y layout.
 **Dependencias:** CU-00.
 **Product:** secciones 3, 6 y 7.
@@ -26,6 +27,7 @@ Este roadmap deriva `/product.md` en una secuencia de implementacion. PUDS es la
 **Cierre:** crear, serializar y reconstruir el documento sin contaminar la semantica UML con layout.
 
 ## CU-02 - Modelar clases y miembros UML
+**Estado:** NEXT / NOT_STARTED.
 **Objetivo:** crear, editar y eliminar clases y miembros soportados.
 **Dependencias:** CU-01.
 **Incluye:** Class, Attribute/Property, Operation, Visibility, tipos, Enumeration, Package cuando aplique y metadatos de generacion separados.
