@@ -63,3 +63,11 @@ CU-02 representa clases, atributos, operaciones y parametros con modelos Pydanti
 CU-03 amplia `CanonicalUmlModel.elements` con una union discriminada Pydantic por `kind` para clases, asociaciones, agregaciones, composiciones y generalizaciones. Las relaciones contienen UUID estable, `sourceId` y `targetId`; association, aggregation y composition requieren multiplicidades estructuradas explicitas (`lower >= 0`, `upper >= lower` o `"*"`). Association mantiene extremos neutrales. En aggregation y composition, `sourceId` es la clase todo/contenedor y `targetId` la parte/contenido; las multiplicidades homonimas corresponden a esos extremos. En generalization, `sourceId` es la clase hija y `targetId` la clase padre, sin multiplicidades.
 
 La integridad de referencias se valida en el modelo canonico: ambos extremos deben identificar clases del mismo modelo, aunque se permiten autorrelaciones. La unicidad UUID es global entre clases, miembros y relaciones. El layout sigue separado y acepta solo UUIDs de clases, nunca relaciones.
+
+## ADR-lite 011 - Diagnosticos para validacion UML semantica
+
+**Estado:** aceptada
+
+CU-04 separa la validacion semantica de las invariantes estructurales Pydantic. `validate_uml_model` no muta ni corrige el modelo y devuelve todos los `UmlDiagnostic` detectados, en vez de lanzar una excepcion por un error UML habitual. Los codigos y severidades son enums estables para permitir consumo posterior desde API y UI; `isValid` se calcula a partir de la ausencia de diagnosticos `error`.
+
+Las comparaciones de nombres y tipos son exactas y case-sensitive. Para evitar ruido, cada regla de duplicados diagnostica cada ocurrencia posterior a la primera en orden canónico; el DFS de generalizaciones registra un diagnostico por arista de retorno detectada en orden de elementos. Las reglas de tipos, paquetes, herencia multiple y ownership se difieren.

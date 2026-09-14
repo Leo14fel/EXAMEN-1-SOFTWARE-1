@@ -17,6 +17,7 @@ Fecha de actualizacion: 2026-09-13
 - [x] CU-01 terminado: ProjectDocument, CanonicalUmlModel y DiagramLayout en memoria.
 - [x] CU-02 terminado: clases, atributos, operaciones y parametros UML.
 - [x] CU-03 terminado: relaciones UML, multiplicidades y convenciones semanticas de direccion.
+- [ ] CU-04 implementado y pendiente de validacion de usuario: diagnosticos de validacion semantica UML.
 
 ## No implementado todavía
 
@@ -31,4 +32,4 @@ Fecha de actualizacion: 2026-09-13
 
 ## Próximo paso
 
-CU-00: DONE. CU-01: DONE. CU-02: DONE. CU-03: DONE. CU-04: NEXT / NOT_STARTED.
+CU-00: DONE. CU-01: DONE. CU-02: DONE. CU-03: DONE. CU-04: READY_FOR_USER_VALIDATION. CU-05: NEXT / NOT_STARTED.

@@ -39,12 +39,13 @@ Este roadmap deriva `/product.md` en una secuencia de implementacion. PUDS es la
 **Incluye:** Association, Aggregation, Composition, Generalization y Multiplicity.
 
 ## CU-04 - Validar el modelo UML y navegar diagnosticos
-**Estado:** NEXT / NOT_STARTED.
+**Estado:** READY_FOR_USER_VALIDATION.
 **Objetivo:** disponer de un unico motor de validacion y diagnosticos accionables.
 **Dependencias:** CU-02, CU-03.
 **Incluye:** severity, code, mensaje, path, referencia, bloqueo y navegacion UI cuando exista interfaz.
 
 ## CU-05 - Command Bus y Undo/Redo
+**Estado:** NEXT / NOT_STARTED.
 **Objetivo:** canalizar mutaciones por UmlCommand/UmlCommandBus/UmlCommandExecutor y soportar Undo/Redo.
 **Dependencias:** CU-02..04.
 **Incluye:** historial inicial configurable de 100 y estrategia de undo/redo.

@@ -2,11 +2,11 @@
 
 ## Último punto estable
 
-CU-00, CU-01, CU-02 y CU-03 cerrados. El stack instalado es Vue 3 + TypeScript + Vite + Vuetify y Python + FastAPI + SQLAlchemy + Alembic. La evidencia de CU-03 vive en `puds/use-cases/CU-03-uml-relationships.md`.
+CU-00, CU-01, CU-02 y CU-03 cerrados; CU-04 esta implementado y pendiente de validacion de usuario. El stack instalado es Vue 3 + TypeScript + Vite + Vuetify y Python + FastAPI + SQLAlchemy + Alembic. La evidencia de CU-04 vive en `puds/use-cases/CU-04-uml-validation.md`.
 
 ## Próximo paso exacto
 
-CU-04 es NEXT; implementar el motor unico de validacion y diagnosticos sin ampliar los contratos semanticos de CU-03.
+CU-05 es NEXT / NOT_STARTED; introducir Command Bus y Undo/Redo sin incorporar canvas mutable.
 
 ## Motivo de la reorganizacion
 
@@ -14,7 +14,7 @@ PUDS es la unica fuente de roadmap. El orden ahora garantiza validacion antes de
 
 ## Dominio actual
 
-`ProjectDocument` contiene UUID, metadata JSON-safe, ownerId estructural, revision, timestamps UTC, `CanonicalUmlModel` y `DiagramLayout`. El modelo canonico mantiene una union discriminada de clases y relaciones; association usa extremos neutrales, aggregation/composition van de todo a parte y generalization de hija a padre. Las multiplicidades son estructuradas, los UUID son globalmente unicos y el layout solo conserva posiciones y dimensiones de clases. No hay persistencia, API ni Command Bus.
+`ProjectDocument` contiene UUID, metadata JSON-safe, ownerId estructural, revision, timestamps UTC, `CanonicalUmlModel` y `DiagramLayout`. El modelo canonico mantiene una union discriminada de clases y relaciones; association usa extremos neutrales, aggregation/composition van de todo a parte y generalization de hija a padre. Las multiplicidades son estructuradas, los UUID son globalmente unicos y el layout solo conserva posiciones y dimensiones de clases. `validate_uml_model` agrega diagnosticos semanticos sin mutar el modelo. No hay persistencia, API ni Command Bus.
 
 ## PostgreSQL actual
 

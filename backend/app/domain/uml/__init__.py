@@ -17,6 +17,13 @@ from app.domain.uml.models import (
     UmlRelationshipBase,
     UmlVisibility,
 )
+from app.domain.uml.validation import (
+    UmlDiagnostic,
+    UmlDiagnosticCode,
+    UmlDiagnosticSeverity,
+    UmlValidationResult,
+    validate_uml_model,
+)
 
 __all__ = [
     "CanonicalUmlModel",
@@ -29,6 +36,9 @@ __all__ = [
     "UmlAttribute",
     "UmlClass",
     "UmlComposition",
+    "UmlDiagnostic",
+    "UmlDiagnosticCode",
+    "UmlDiagnosticSeverity",
     "UmlElementBase",
     "UmlGeneralization",
     "UmlMultiplicity",
@@ -36,4 +46,6 @@ __all__ = [
     "UmlParameter",
     "UmlRelationshipBase",
     "UmlVisibility",
+    "UmlValidationResult",
+    "validate_uml_model",
 ]

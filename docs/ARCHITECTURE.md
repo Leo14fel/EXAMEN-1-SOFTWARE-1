@@ -71,6 +71,8 @@ ProjectDocument
 
 Los elementos top-level forman una union discriminada por `kind`: `UmlClass`, `UmlAssociation`, `UmlAggregation`, `UmlComposition` y `UmlGeneralization`. Las relaciones conservan semantica (`sourceId`, `targetId` y multiplicidades cuando aplican), pero no son nodos visuales. `DiagramLayout.nodes` solo puede referenciar clases. La identidad UUID es global entre elementos top-level y miembros anidados.
 
+`models.py` conserva contratos Pydantic e invariantes estructurales. `app.domain.uml.validation` contiene el validador semantico puro `validate_uml_model`, que recibe un `CanonicalUmlModel` inmutable y devuelve `UmlValidationResult` con diagnosticos tipados; no corrige el modelo ni lanza excepciones por errores UML normales. Esta capa sera reutilizada por las futuras entradas, persistencia y generacion.
+
 Las entradas futuras manual, texto, voz, imagen y XMI deberán producir o modificar el modelo canónico mediante los mecanismos definidos por el roadmap; esos adaptadores no están implementados todavía.
 
 ## Regla de evolución
