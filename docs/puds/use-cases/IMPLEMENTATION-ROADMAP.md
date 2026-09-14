@@ -33,12 +33,13 @@ Este roadmap deriva `/product.md` en una secuencia de implementacion. PUDS es la
 **Incluye:** Class, Attribute/Property, Operation, Visibility, tipos, Enumeration, Package cuando aplique y metadatos de generacion separados.
 
 ## CU-03 - Modelar relaciones UML
-**Estado:** NEXT / NOT_STARTED.
+**Estado:** DONE.
 **Objetivo:** crear y modificar relaciones UML validas.
 **Dependencias:** CU-02.
 **Incluye:** Association, Aggregation, Composition, Generalization y Multiplicity.
 
 ## CU-04 - Validar el modelo UML y navegar diagnosticos
+**Estado:** NEXT / NOT_STARTED.
 **Objetivo:** disponer de un unico motor de validacion y diagnosticos accionables.
 **Dependencias:** CU-02, CU-03.
 **Incluye:** severity, code, mensaje, path, referencia, bloqueo y navegacion UI cuando exista interfaz.

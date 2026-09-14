@@ -1,9 +1,17 @@
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import Literal
+from typing import Annotated, Literal
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    JsonValue,
+    StrictInt,
+    field_validator,
+    model_validator,
+)
 
 
 class DomainModel(BaseModel):
@@ -85,22 +93,81 @@ class UmlClass(UmlElementBase, UmlNamedElement):
     operations: list[UmlOperation] = Field(default_factory=list)
 
 
-class CanonicalUmlModel(DomainModel):
-    elements: list[UmlClass] = Field(default_factory=list)
+class UmlMultiplicity(DomainModel):
+    lower: StrictInt = Field(ge=0)
+    upper: StrictInt | Literal["*"]
 
     @model_validator(mode="after")
-    def require_unique_element_ids(self) -> "CanonicalUmlModel":
+    def validate_bounds(self) -> "UmlMultiplicity":
+        if isinstance(self.upper, int) and self.upper < self.lower:
+            raise ValueError("upper must be greater than or equal to lower")
+        return self
+
+
+class UmlRelationshipBase(UmlElementBase):
+    source_id: UUID = Field(alias="sourceId")
+    target_id: UUID = Field(alias="targetId")
+
+
+class UmlAssociation(UmlRelationshipBase):
+    kind: Literal["association"] = "association"
+    source_multiplicity: UmlMultiplicity = Field(alias="sourceMultiplicity")
+    target_multiplicity: UmlMultiplicity = Field(alias="targetMultiplicity")
+
+
+class UmlAggregation(UmlRelationshipBase):
+    """Represents aggregation from source whole to target part."""
+
+    kind: Literal["aggregation"] = "aggregation"
+    source_multiplicity: UmlMultiplicity = Field(alias="sourceMultiplicity")
+    target_multiplicity: UmlMultiplicity = Field(alias="targetMultiplicity")
+
+
+class UmlComposition(UmlRelationshipBase):
+    """Represents composition from source whole to target part."""
+
+    kind: Literal["composition"] = "composition"
+    source_multiplicity: UmlMultiplicity = Field(alias="sourceMultiplicity")
+    target_multiplicity: UmlMultiplicity = Field(alias="targetMultiplicity")
+
+
+class UmlGeneralization(UmlRelationshipBase):
+    """Represents generalization from source child to target parent."""
+
+    kind: Literal["generalization"] = "generalization"
+
+
+CanonicalUmlElement = Annotated[
+    UmlClass | UmlAssociation | UmlAggregation | UmlComposition | UmlGeneralization,
+    Field(discriminator="kind"),
+]
+
+
+class CanonicalUmlModel(DomainModel):
+    elements: list[CanonicalUmlElement] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_elements(self) -> "CanonicalUmlModel":
         semantic_ids: list[UUID] = []
+        class_ids: set[UUID] = set()
         for uml_class in self.elements:
             semantic_ids.append(uml_class.id)
-            for attribute in uml_class.attributes:
-                semantic_ids.append(attribute.id)
-            for operation in uml_class.operations:
-                semantic_ids.append(operation.id)
-                semantic_ids.extend(parameter.id for parameter in operation.parameters)
+            if isinstance(uml_class, UmlClass):
+                class_ids.add(uml_class.id)
+                for attribute in uml_class.attributes:
+                    semantic_ids.append(attribute.id)
+                for operation in uml_class.operations:
+                    semantic_ids.append(operation.id)
+                    semantic_ids.extend(parameter.id for parameter in operation.parameters)
 
         if len(semantic_ids) != len(set(semantic_ids)):
             raise ValueError("semantic elements must have globally unique ids")
+
+        for element in self.elements:
+            if isinstance(element, UmlRelationshipBase) and (
+                element.source_id not in class_ids or element.target_id not in class_ids
+            ):
+                raise ValueError("relationship source_id and target_id must reference UML classes")
         return self
 
 
@@ -139,9 +206,11 @@ class ProjectDocument(DomainModel):
         if self.updated_at < self.created_at:
             raise ValueError("updated_at must be greater than or equal to created_at")
 
-        element_ids = {element.id for element in self.uml_model.elements}
-        orphan_layout_ids = set(self.diagram_layout.nodes) - element_ids
+        class_ids = {
+            element.id for element in self.uml_model.elements if isinstance(element, UmlClass)
+        }
+        orphan_layout_ids = set(self.diagram_layout.nodes) - class_ids
         if orphan_layout_ids:
-            raise ValueError("diagram_layout nodes must reference existing UML elements")
+            raise ValueError("diagram_layout nodes must reference existing UML classes")
 
         return self

@@ -55,3 +55,11 @@ AWS es un requisito de producto. La seleccion de servicios se difiere al CU de d
 **Estado:** aceptada
 
 CU-02 representa clases, atributos, operaciones y parametros con modelos Pydantic tipados y `kind` estable. La visibilidad usa `UmlVisibility`; tipos y nombres son strings semanticos no vacios. La ausencia de `returnType` se representa con `null`/`None`; los generadores futuros la mapearan al equivalente del lenguaje destino. Los UUID son globalmente unicos en `CanonicalUmlModel`; relaciones y validaciones entre clases se difieren a CUs posteriores.
+
+## ADR-lite 010 - Relaciones UML semanticas top-level
+
+**Estado:** aceptada
+
+CU-03 amplia `CanonicalUmlModel.elements` con una union discriminada Pydantic por `kind` para clases, asociaciones, agregaciones, composiciones y generalizaciones. Las relaciones contienen UUID estable, `sourceId` y `targetId`; association, aggregation y composition requieren multiplicidades estructuradas explicitas (`lower >= 0`, `upper >= lower` o `"*"`). Association mantiene extremos neutrales. En aggregation y composition, `sourceId` es la clase todo/contenedor y `targetId` la parte/contenido; las multiplicidades homonimas corresponden a esos extremos. En generalization, `sourceId` es la clase hija y `targetId` la clase padre, sin multiplicidades.
+
+La integridad de referencias se valida en el modelo canonico: ambos extremos deben identificar clases del mismo modelo, aunque se permiten autorrelaciones. La unicidad UUID es global entre clases, miembros y relaciones. El layout sigue separado y acepta solo UUIDs de clases, nunca relaciones.

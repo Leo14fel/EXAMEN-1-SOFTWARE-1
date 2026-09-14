@@ -10,7 +10,7 @@ La herramienta CASE es colaborativa y offline-first para modelado UML de clases.
 
 ## Estado actual
 
-CU-00, CU-01 y CU-02 están DONE. CU-02 agrega clases, atributos, operaciones y parametros UML a `CanonicalUmlModel`, con validación y serialización Pydantic en memoria.
+CU-00, CU-01, CU-02 y CU-03 estan DONE. CU-03 agrega association, aggregation, composition, generalization y multiplicidades estructuradas a `CanonicalUmlModel`, con validacion y serializacion Pydantic en memoria. Association tiene extremos neutrales; aggregation/composition van de todo a parte y generalization de hija a padre. Los UUID son globalmente unicos y el layout solo contiene nodos de clase.
 
 La base validada es PostgreSQL local de Windows: `localhost:5432/examen_sw1`, usuario `postgres`. Docker Compose es opcional y publica `localhost:55432` hacia `5432` dentro del contenedor.
 
@@ -24,7 +24,7 @@ La base validada es PostgreSQL local de Windows: `localhost:5432/examen_sw1`, us
 
 ## Roadmap
 
-`docs/puds/` es la única fuente de roadmap y CUs. CU-03 es NEXT / NOT_STARTED. La auditoría previa estableció validación antes del Command Bus y Command Bus antes del canvas mutable. CU-09 administra acceso de colaboradores antes de CU-10 realtime. AWS es requisito de producto y se implementará en CU-23 sin elegir servicios antes de ese CU; CU-24 ejecutará la aceptación integral del MVP.
+`docs/puds/` es la unica fuente de roadmap y CUs. CU-04 es NEXT / NOT_STARTED. La auditoria previa establecio validacion antes del Command Bus y Command Bus antes del canvas mutable. CU-09 administra acceso de colaboradores antes de CU-10 realtime. AWS es requisito de producto y se implementara en CU-23 sin elegir servicios antes de ese CU; CU-24 ejecutara la aceptacion integral del MVP.
 
 ## Benchmarks
 

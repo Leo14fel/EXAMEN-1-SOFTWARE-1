@@ -1,6 +1,6 @@
 # Estado real
 
-Fecha de actualizacion: 2026-09-12
+Fecha de actualizacion: 2026-09-13
 
 ## Completado
 
@@ -12,10 +12,14 @@ Fecha de actualizacion: 2026-09-12
 - [x] Docker Compose documentado como alternativa opcional (`55432` en host -> `5432` en contenedor).
 - [x] Auditoría previa a CU-01: producto, roadmap PUDS, arquitectura, decisiones y gate base alineados.
 
-## No implementado todavía
+## CUs de dominio completados
 
 - [x] CU-01 terminado: ProjectDocument, CanonicalUmlModel y DiagramLayout en memoria.
 - [x] CU-02 terminado: clases, atributos, operaciones y parametros UML.
+- [x] CU-03 terminado: relaciones UML, multiplicidades y convenciones semanticas de direccion.
+
+## No implementado todavía
+
 - [ ] Persistencia de proyectos.
 - [ ] Auth/ownership.
 - [ ] Canvas UML funcional.
@@ -27,4 +31,4 @@ Fecha de actualizacion: 2026-09-12
 
 ## Próximo paso
 
-CU-00: DONE. CU-01: DONE. CU-02: DONE. CU-03: NEXT / NOT_STARTED.
+CU-00: DONE. CU-01: DONE. CU-02: DONE. CU-03: DONE. CU-04: NEXT / NOT_STARTED.
