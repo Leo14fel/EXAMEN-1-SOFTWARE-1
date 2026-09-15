@@ -2,11 +2,11 @@
 
 ## Último punto estable
 
-CU-00, CU-01, CU-02 y CU-03 cerrados; CU-04 esta implementado y pendiente de validacion de usuario. El stack instalado es Vue 3 + TypeScript + Vite + Vuetify y Python + FastAPI + SQLAlchemy + Alembic. La evidencia de CU-04 vive en `puds/use-cases/CU-04-uml-validation.md`.
+CU-00 a CU-05 estan cerrados. El stack instalado es Vue 3 + TypeScript + Vite + Vuetify y Python + FastAPI + SQLAlchemy + Alembic. La evidencia de CU-05 vive en `puds/use-cases/CU-05-command-bus-undo-redo.md`.
 
 ## Próximo paso exacto
 
-CU-05 es NEXT / NOT_STARTED; introducir Command Bus y Undo/Redo sin incorporar canvas mutable.
+CU-06 es NEXT / NOT_STARTED; proyectar el documento mediante canvas sin convertirlo en fuente de verdad.
 
 ## Motivo de la reorganizacion
 
@@ -14,7 +14,9 @@ PUDS es la unica fuente de roadmap. El orden ahora garantiza validacion antes de
 
 ## Dominio actual
 
-`ProjectDocument` contiene UUID, metadata JSON-safe, ownerId estructural, revision, timestamps UTC, `CanonicalUmlModel` y `DiagramLayout`. El modelo canonico mantiene una union discriminada de clases y relaciones; association usa extremos neutrales, aggregation/composition van de todo a parte y generalization de hija a padre. Las multiplicidades son estructuradas, los UUID son globalmente unicos y el layout solo conserva posiciones y dimensiones de clases. `validate_uml_model` agrega diagnosticos semanticos sin mutar el modelo. No hay persistencia, API ni Command Bus.
+`ProjectDocument` contiene UUID, metadata JSON-safe, ownerId estructural, revision, timestamps UTC, `CanonicalUmlModel` y `DiagramLayout`. El modelo canonico mantiene una union discriminada de clases y relaciones; association usa extremos neutrales, aggregation/composition van de todo a parte y generalization de hija a padre. Las multiplicidades son estructuradas, los UUID son globalmente unicos y el layout solo conserva posiciones y dimensiones de clases. `validate_uml_model` agrega diagnosticos semanticos sin mutar el modelo.
+
+Toda futura mutacion debe recorrer `UmlCommand -> UmlCommandBus -> execute_uml_command -> ProjectDocument`; UI, canvas, IA y XMI no pueden modificar el documento directamente. El executor es puro y sin mutacion in-place. El bus encapsula su estado y entrega copias seguras a consumidores externos. Undo/Redo usa snapshots completos, conserva hasta 100 estados de undo y descarta el mas antiguo al superar el limite. La revision es monotona incluso en undo/redo, `updatedAt` no retrocede y un comando nuevo despues de undo invalida redo. Los errores usan codigos estables; diagnosticos semanticos de CU-04 no bloquean comandos estructuralmente validos. Eliminar una clase referenciada no hace cascada: se rechaza el comando de forma atomica.
 
 ## PostgreSQL actual
 

@@ -73,7 +73,13 @@ Los elementos top-level forman una union discriminada por `kind`: `UmlClass`, `U
 
 `models.py` conserva contratos Pydantic e invariantes estructurales. `app.domain.uml.validation` contiene el validador semantico puro `validate_uml_model`, que recibe un `CanonicalUmlModel` inmutable y devuelve `UmlValidationResult` con diagnosticos tipados; no corrige el modelo ni lanza excepciones por errores UML normales. Esta capa sera reutilizada por las futuras entradas, persistencia y generacion.
 
-Las entradas futuras manual, texto, voz, imagen y XMI deberán producir o modificar el modelo canónico mediante los mecanismos definidos por el roadmap; esos adaptadores no están implementados todavía.
+## Mutaciones UML
+
+```text
+UmlCommand -> UmlCommandBus -> UmlCommandExecutor -> ProjectDocument
+```
+
+Las entradas futuras manual, canvas, texto, voz, imagen, XMI, colaboracion y API deberan construir un `UmlCommand` Pydantic discriminado por `commandType`; no modifican `ProjectDocument` directamente. El executor es puro y construye un documento nuevo independiente de sus entradas, mientras que el bus mantiene snapshots en memoria para undo/redo y aplica revision monotona y `updatedAt` nuevo. El bus entrega copias profundas a consumidores externos para encapsular su estado. El historial de undo conserva como maximo 100 snapshots, descartando el mas antiguo al superar ese limite para acotar memoria. La validacion semantica de CU-04 queda separada: los comandos solo bloquean invariantes estructurales.
 
 ## Regla de evolución
 

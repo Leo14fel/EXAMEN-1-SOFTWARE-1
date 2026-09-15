@@ -71,3 +71,11 @@ La integridad de referencias se valida en el modelo canonico: ambos extremos deb
 CU-04 separa la validacion semantica de las invariantes estructurales Pydantic. `validate_uml_model` no muta ni corrige el modelo y devuelve todos los `UmlDiagnostic` detectados, en vez de lanzar una excepcion por un error UML habitual. Los codigos y severidades son enums estables para permitir consumo posterior desde API y UI; `isValid` se calcula a partir de la ausencia de diagnosticos `error`.
 
 Las comparaciones de nombres y tipos son exactas y case-sensitive. Para evitar ruido, cada regla de duplicados diagnostica cada ocurrencia posterior a la primera en orden canónico; el DFS de generalizaciones registra un diagnostico por arista de retorno detectada en orden de elementos. Las reglas de tipos, paquetes, herencia multiple y ownership se difieren.
+
+## ADR-lite 012 - Command Bus con snapshots locales
+
+**Estado:** aceptada
+
+Todas las mutaciones UML futuras deben pasar por `UmlCommand -> UmlCommandBus -> UmlCommandExecutor -> ProjectDocument`; ninguna entrada modifica el documento directamente. Los comandos son modelos Pydantic discriminados por `commandType`, para permitir serializacion y reutilizacion posterior.
+
+Undo/Redo usa snapshots completos inicialmente por simplicidad, correccion y facilidad de pruebas. El historial de undo tiene un limite fijo de 100 estados: al superar el limite se descarta el snapshot mas antiguo para evitar crecimiento indefinido de memoria y conservar los 100 mas recientes. `UmlCommandBus` encapsula su estado mediante copias profundas: ninguna referencia de documento o resultado entregada a un consumidor puede modificar el estado interno fuera de comandos. El executor tambien devuelve un documento independiente de sus entradas y comandos. `revision` es monotona incluso durante undo/redo y `updatedAt` se renueva sin retroceder; identidad, ownership y fecha de creacion se conservan. La validacion semantica no bloquea comandos estructuralmente validos.

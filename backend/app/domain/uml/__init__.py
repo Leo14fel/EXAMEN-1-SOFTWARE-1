@@ -1,3 +1,15 @@
+from app.domain.uml.command_bus import UmlCommandBus
+from app.domain.uml.commands import (
+    AddUmlElementCommand,
+    RemoveNodeLayoutCommand,
+    RemoveUmlElementCommand,
+    SetNodeLayoutCommand,
+    UmlCommand,
+    UmlCommandErrorCode,
+    UmlCommandExecutionError,
+    UpdateUmlElementCommand,
+)
+from app.domain.uml.executor import execute_uml_command
 from app.domain.uml.models import (
     CanonicalUmlElement,
     CanonicalUmlModel,
@@ -28,14 +40,22 @@ from app.domain.uml.validation import (
 __all__ = [
     "CanonicalUmlModel",
     "CanonicalUmlElement",
+    "AddUmlElementCommand",
     "DiagramLayout",
     "DiagramNodeLayout",
     "ProjectDocument",
+    "RemoveNodeLayoutCommand",
+    "RemoveUmlElementCommand",
+    "SetNodeLayoutCommand",
     "UmlAggregation",
     "UmlAssociation",
     "UmlAttribute",
     "UmlClass",
     "UmlComposition",
+    "UmlCommand",
+    "UmlCommandBus",
+    "UmlCommandErrorCode",
+    "UmlCommandExecutionError",
     "UmlDiagnostic",
     "UmlDiagnosticCode",
     "UmlDiagnosticSeverity",
@@ -47,5 +67,7 @@ __all__ = [
     "UmlRelationshipBase",
     "UmlVisibility",
     "UmlValidationResult",
+    "UpdateUmlElementCommand",
+    "execute_uml_command",
     "validate_uml_model",
 ]

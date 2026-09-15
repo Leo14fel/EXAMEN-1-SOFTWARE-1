@@ -10,7 +10,7 @@ La herramienta CASE es colaborativa y offline-first para modelado UML de clases.
 
 ## Estado actual
 
-CU-00, CU-01, CU-02 y CU-03 estan DONE. CU-04 esta READY_FOR_USER_VALIDATION: `validate_uml_model` analiza un `CanonicalUmlModel` sin mutarlo y devuelve diagnosticos semanticos tipados para duplicados de nombres, firmas y generalizaciones invalidas. Las invariantes estructurales permanecen en Pydantic. CU-03 aporta association, aggregation, composition, generalization y multiplicidades estructuradas; los UUID son globalmente unicos y el layout solo contiene nodos de clase.
+CU-00 a CU-05 estan DONE. CU-05 establece que toda futura mutacion UML de UI, canvas, IA o XMI recorre `UmlCommand -> UmlCommandBus -> execute_uml_command -> ProjectDocument`; ninguna capa futura modifica `ProjectDocument` directamente. El executor es puro y no muta entradas in-place. El bus encapsula estado y sus consumidores reciben copias seguras. Undo/Redo usa snapshots completos, mantiene un maximo de 100 estados de undo y descarta el mas antiguo al superar el limite. La revision es monotona incluso durante undo/redo, `updatedAt` no retrocede y un comando nuevo despues de undo invalida redo. Los errores usan codigos estables; la validacion semantica no bloquea comandos estructuralmente validos y eliminar una clase referenciada se rechaza atomicamente, sin cascada. CU-06 es NEXT / NOT_STARTED. CU-03 aporta association, aggregation, composition, generalization y multiplicidades estructuradas; los UUID son globalmente unicos y el layout solo contiene nodos de clase.
 
 La base validada es PostgreSQL local de Windows: `localhost:5432/examen_sw1`, usuario `postgres`. Docker Compose es opcional y publica `localhost:55432` hacia `5432` dentro del contenedor.
 
@@ -24,7 +24,7 @@ La base validada es PostgreSQL local de Windows: `localhost:5432/examen_sw1`, us
 
 ## Roadmap
 
-`docs/puds/` es la unica fuente de roadmap y CUs. CU-05 es NEXT / NOT_STARTED. La auditoria previa establecio validacion antes del Command Bus y Command Bus antes del canvas mutable. CU-09 administra acceso de colaboradores antes de CU-10 realtime. AWS es requisito de producto y se implementara en CU-23 sin elegir servicios antes de ese CU; CU-24 ejecutara la aceptacion integral del MVP.
+`docs/puds/` es la unica fuente de roadmap y CUs. CU-06 es NEXT / NOT_STARTED. La auditoria previa establecio validacion antes del Command Bus y Command Bus antes del canvas mutable. CU-09 administra acceso de colaboradores antes de CU-10 realtime. AWS es requisito de producto y se implementara en CU-23 sin elegir servicios antes de ese CU; CU-24 ejecutara la aceptacion integral del MVP.
 
 ## Benchmarks
 

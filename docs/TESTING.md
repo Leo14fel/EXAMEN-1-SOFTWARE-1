@@ -21,6 +21,10 @@ No requiere PostgreSQL para este smoke test, por lo que permite distinguir fallo
 
 `tests/domain/test_uml_validation.py` prueba el validador puro contra modelos validos, duplicados de nombres, firmas de operaciones, ciclos y duplicados de generalizacion. Tambien verifica acumulacion ordenada de diagnosticos, no mutacion y serializacion Pydantic con aliases publicos. Estas pruebas no requieren PostgreSQL, red ni frontend.
 
+### Command Bus y Undo/Redo
+
+`tests/domain/test_uml_command_bus.py` verifica ejecucion de comandos de elementos y layout, errores con codigos estables, atomicidad ante resultados estructuralmente invalidos, ausencia de mutacion del documento previo, snapshots, undo/redo, invalidacion de redo al crear una rama, revision monotona, `updatedAt` monotono y serializacion JSON discriminada de comandos. Las pruebas confirman que diagnosticos semanticos no bloquean mutaciones estructuralmente validas.
+
 ## Frontend
 
 Comandos:
