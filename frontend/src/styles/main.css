@@ -10,10 +10,14 @@ body,
   margin: 0;
 }
 
-.foundation-shell {
-  min-height: 100vh;
+html,
+body {
+  background: #0f1720;
 }
 
-.foundation-card {
-  border: 1px solid rgba(255, 255, 255, 0.08);
+button,
+input,
+textarea,
+select {
+  font: inherit;
 }
