@@ -52,7 +52,7 @@ Este roadmap deriva `/product.md` en una secuencia de implementacion. PUDS es la
 **Cierre:** toda mutacion soportada usa la ruta oficial y conserva consistencia al deshacer/rehacer.
 
 ## CU-06 - Editar el diagrama desde el canvas
-**Estado:** NEXT / NOT_STARTED.
+**Estado:** DONE.
 **Objetivo:** proyectar y editar el documento con `@vue-flow/core` sin que el canvas sea fuente de verdad.
 **Dependencias:** CU-01..05.
 **Incluye:** nodos, relaciones, zoom/pan/seleccion/movimiento, inspector, toolbox, fit, grid y d3-dag; las mutaciones pasan por el Command Bus existente.

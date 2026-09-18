@@ -69,3 +69,34 @@ El producto define Cypress, pero los escenarios E2E reales deben añadirse cuand
 ## Regla
 
 Cada CU debe añadir o actualizar pruebas que correspondan a sus criterios de aceptación.
+
+### CU-06 - Puente temporal del editor
+
+El Incremento 1 agrega pruebas backend para crear/consultar sesiones en memoria, ejecutar un `UmlCommand` real y reutilizar Undo/Redo de CU-05. Tambien comprueba errores HTTP estables para sesion inexistente y comandos rechazados. En frontend, Vitest cubre el cliente HTTP y el store Pinia para confirmar que envia comandos al backend y reemplaza su proyeccion con la respuesta, sin aplicar mutaciones UML locales.
+
+No requiere PostgreSQL. Los resultados reales se registran en `CU-06-uml-canvas.md` despues de ejecutar el gate.
+
+### CU-06 - Incremento 2 canvas de lectura
+
+Se agregan pruebas deterministas para `ProjectDocument -> Node[]/Edge[]`, incluyendo uso de `DiagramLayout`, fallback visual, multiplicidades y direccion de generalizacion. El nodo UML se prueba como componente independiente. La prueba de `App` usa transporte mockeado para verificar que el workspace inicia una sesion y muestra el canvas vacio sin depender del backend real.
+
+El gate debe confirmar ademas que desaparecen los warnings previos de componentes Vuetify no resueltos.
+
+### CU-06 - Incremento 3 editor mutable
+
+Se agregan pruebas puras para creacion de elementos/multiplicidades y auto-layout `d3-dag`, se actualiza el mapper para nodos arrastrables y marcadores UML, y `App.spec.ts` verifica que `Nueva clase` termina enviando `addElement` mediante el cliente del editor.
+
+La validacion manual final debe crear al menos dos clases, editar atributos/operaciones, crear una relacion, mover una clase, ejecutar Undo/Redo, auto-organizar y confirmar que revision/estado cambian sin errores de consola.
+
+### Evidencia final CU-06
+
+- backend: 137 passed, 2 warnings externos;
+- frontend: 20 passed en 9 archivos;
+- typecheck: OK;
+- build: OK;
+- Ruff: OK;
+- pip check: OK;
+- `scripts/check.ps1`: OK;
+- prueba manual: crear/editar clases, atributos y operaciones, relacion, drag con revision, Undo/Redo y auto-layout.
+
+El warning de chunks Vite mayores a 500 kB se registra como optimizacion futura y no bloquea CU-06.

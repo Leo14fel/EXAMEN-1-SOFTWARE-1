@@ -84,3 +84,33 @@ Las entradas futuras manual, canvas, texto, voz, imagen, XMI, colaboracion y API
 ## Regla de evolución
 
 No crear arquitectura para una capacidad futura hasta que un caso de uso aprobado la necesite.
+
+## Puente temporal del editor - CU-06 Incremento 1
+
+```text
+Vue / Pinia (proyeccion cliente)
+        |
+        | HTTP + UmlCommand JSON
+        v
+FastAPI /editor/sessions
+        |
+        v
+UmlCommandBus canonico
+        |
+        v
+ProjectDocument
+```
+
+CU-06 no duplica `UmlCommandBus` ni reglas UML en TypeScript. FastAPI mantiene sesiones efimeras en memoria para conectar el frontend al dominio ya implementado. Cada mutacion del canvas debera enviarse como comando al backend y el frontend reemplazara su proyeccion con el estado autoritativo recibido. Estas sesiones no usan PostgreSQL y desaparecen al reiniciar el backend; CU-07 incorporara persistencia. El `ownerId` temporal de CU-06 es estructural, no una autenticacion; CU-08 incorporara identidad real.
+
+## Proyeccion Vue Flow - CU-06 Incremento 2
+
+`ProjectDocument` sigue siendo la unica fuente de verdad semantica. `projectDocumentToFlow()` deriva de manera determinista `Node[]` y `Edge[]` para `@vue-flow/core`: clases se convierten en nodes y relaciones top-level en edges. `DiagramLayout` se consume solo para posiciones/dimensiones existentes; una posicion fallback sin layout es exclusivamente visual y no muta el documento.
+
+Incremento 2 mantiene `nodesDraggable=false`, `nodesConnectable=false` y no ofrece borrado. Zoom, pan, seleccion, Background y Controls son interaccion visual local. La persistencia de posicion mediante `SetNodeLayoutCommand` pertenece al Incremento 3.
+
+## Edicion manual del canvas - CU-06 Incremento 3
+
+El canvas permite drag visual, pero solo persiste la posicion al finalizar el movimiento mediante `SetNodeLayoutCommand`. Creacion, actualizacion y borrado de elementos utilizan `addElement`, `updateElement` y `removeElement`; Undo/Redo llaman al historial canonico del backend. El inspector nunca modifica `ProjectDocument` directamente.
+
+`d3-dag` calcula posiciones de auto-layout en frontend. Cada posicion calculada se envia despues como `SetNodeLayoutCommand`, por lo que el documento canonico sigue siendo la fuente de verdad. En CU-06 el auto-layout puede producir varias entradas de historial, una por clase, porque no existe un comando compuesto y no se introduce uno artificialmente en este CU.

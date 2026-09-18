@@ -20,6 +20,9 @@ Fecha de actualizacion: 2026-09-15
 - [x] CU-04 terminado: diagnosticos de validacion semantica UML.
 - [x] CU-05 terminado: Command Bus encapsulado, snapshots y Undo/Redo.
 
+## CU activo
+
+- [ ] CU-06 DONE: canvas UML editable, inspector, relaciones, drag persistido, Undo/Redo y auto-layout validados. CU-07 es NEXT / NOT_STARTED.
 ## No implementado todavía
 
 - [ ] Persistencia de proyectos.
@@ -33,4 +36,4 @@ Fecha de actualizacion: 2026-09-15
 
 ## Próximo paso
 
-CU-00: DONE. CU-01: DONE. CU-02: DONE. CU-03: DONE. CU-04: DONE. CU-05: DONE. CU-06: NEXT / NOT_STARTED.
+CU-00: DONE. CU-01: DONE. CU-02: DONE. CU-03: DONE. CU-04: DONE. CU-05: DONE. CU-06: DONE. CU-07: NEXT / NOT_STARTED.

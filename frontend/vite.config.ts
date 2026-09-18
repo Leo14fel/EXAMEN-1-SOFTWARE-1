@@ -10,5 +10,13 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
+    server: {
+      deps: {
+        // Vuetify importa CSS de componentes desde node_modules.
+        // Inlining hace que Vite procese esos assets durante Vitest
+        // en lugar de delegarlos al import nativo de Node.
+        inline: [/vuetify/],
+      },
+    },
   },
 })

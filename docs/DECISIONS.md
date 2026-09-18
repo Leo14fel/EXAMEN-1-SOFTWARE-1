@@ -79,3 +79,27 @@ Las comparaciones de nombres y tipos son exactas y case-sensitive. Para evitar r
 Todas las mutaciones UML futuras deben pasar por `UmlCommand -> UmlCommandBus -> UmlCommandExecutor -> ProjectDocument`; ninguna entrada modifica el documento directamente. Los comandos son modelos Pydantic discriminados por `commandType`, para permitir serializacion y reutilizacion posterior.
 
 Undo/Redo usa snapshots completos inicialmente por simplicidad, correccion y facilidad de pruebas. El historial de undo tiene un limite fijo de 100 estados: al superar el limite se descarta el snapshot mas antiguo para evitar crecimiento indefinido de memoria y conservar los 100 mas recientes. `UmlCommandBus` encapsula su estado mediante copias profundas: ninguna referencia de documento o resultado entregada a un consumidor puede modificar el estado interno fuera de comandos. El executor tambien devuelve un documento independiente de sus entradas y comandos. `revision` es monotona incluso durante undo/redo y `updatedAt` se renueva sin retroceder; identidad, ownership y fecha de creacion se conservan. La validacion semantica no bloquea comandos estructuralmente validos.
+
+## ADR-lite 013 - Canvas Vue conectado al Command Bus por sesiones HTTP temporales
+
+**Estado:** aceptada
+
+CU-06 mantiene una unica implementacion autoritativa de mutaciones UML en Python. El frontend Vue no replica `UmlCommandBus`, atomicidad, historial ni validaciones estructurales. En su lugar, usa un adaptador HTTP de sesiones efimeras en memoria: Vue envia `UmlCommand` serializados, FastAPI los ejecuta mediante el bus canonico y devuelve `ProjectDocument`, `canUndo` y `canRedo`.
+
+La memoria del proceso no se considera persistencia y se pierde al reiniciar FastAPI. Esta decision evita adelantar CU-07 y permite reemplazar posteriormente el almacenamiento temporal sin redisenar el canvas. Pinia conserva una proyeccion del estado recibido y no es fuente semantica de verdad.
+
+## ADR-lite 014 - Vue Flow es proyeccion, no modelo de dominio
+
+**Estado:** aceptada
+
+CU-06 convierte `ProjectDocument` en nodes/edges mediante un mapper puro. Vue Flow no almacena una segunda version del UML ni decide reglas semanticas. Las posiciones fallback de clases sin `DiagramLayout` son deterministas pero transitorias. Hasta Incremento 3 los nodos no son arrastrables para evitar que una posicion visual aparente ser persistida sin pasar por `SetNodeLayoutCommand`.
+
+El grid usa CSS y los controles llaman acciones de viewport de `@vue-flow/core`; no agregan logica de dominio ni nuevas dependencias.
+
+## ADR-lite 015 - Edicion del canvas sin mutacion paralela
+
+**Estado:** aceptada
+
+Vue Flow puede mover visualmente un node durante el drag, pero el cambio real se confirma solo con `SetNodeLayoutCommand` en `node-drag-stop`. Toolbox e inspector construyen comandos publicos y esperan el nuevo `ProjectDocument` del backend. No existe historial, validacion estructural ni cascada de borrado duplicada en TypeScript.
+
+El inspector conserva el `kind` de una relacion al actualizarla porque CU-05 rechaza `ELEMENT_KIND_MISMATCH`. Cambiar association/aggregation/composition/generalization requiere eliminar y volver a crear la relacion. Una clase con relaciones no se ofrece para borrado hasta retirar esas relaciones, coherente con el rechazo atomico del executor.
