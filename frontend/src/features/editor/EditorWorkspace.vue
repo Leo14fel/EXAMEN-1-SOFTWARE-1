@@ -67,6 +67,8 @@ async function createClass(): Promise<void> {
 }
 
 async function createRelationship(relationship: UmlRelationship): Promise<void> {
+  if (!document.value || busy.value) return
+
   if (
     await executeCommand({
       commandType: 'addElement',
@@ -254,13 +256,14 @@ onMounted(startEditor)
                   prepend-icon="mdi-cube-outline"
                   title="Clase"
                   subtitle="Nueva clase UML"
+                  :disabled="busy"
                   @click="createClass"
                 />
                 <v-list-item
                   prepend-icon="mdi-vector-line"
                   title="Relación"
                   subtitle="Asociación, agregación, composición o herencia"
-                  :disabled="classes.length === 0"
+                  :disabled="busy || classes.length === 0"
                   @click="relationshipDialogOpen = true"
                 />
               </v-list>
@@ -301,6 +304,7 @@ onMounted(startEditor)
           <RelationshipDialog
             v-model="relationshipDialogOpen"
             :classes="classes"
+            :busy="busy"
             @create="createRelationship"
           />
         </template>

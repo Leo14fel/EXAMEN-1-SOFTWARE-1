@@ -11,7 +11,8 @@ client = TestClient(app)
 
 @pytest.fixture(autouse=True)
 def clear_editor_sessions() -> None:
-    editor._editor_sessions.clear()
+    with editor._editor_sessions_lock:
+        editor._editor_sessions.clear()
 
 
 def create_session() -> dict[str, object]:
@@ -115,3 +116,24 @@ def test_command_error_is_exposed_as_stable_conflict() -> None:
 
     assert response.status_code == 409
     assert response.json()["detail"]["code"] == "ELEMENT_ALREADY_EXISTS"
+
+
+def test_editor_sessions_are_bounded_and_evict_least_recently_used(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(editor, "_MAX_EDITOR_SESSIONS", 2)
+
+    first = create_session()
+    second = create_session()
+
+    first_get = client.get(f'/editor/sessions/{first["sessionId"]}')
+    assert first_get.status_code == 200
+
+    third = create_session()
+
+    evicted = client.get(f'/editor/sessions/{second["sessionId"]}')
+    assert evicted.status_code == 404
+    assert evicted.json()["detail"]["code"] == "EDITOR_SESSION_NOT_FOUND"
+
+    assert client.get(f'/editor/sessions/{first["sessionId"]}').status_code == 200
+    assert client.get(f'/editor/sessions/{third["sessionId"]}').status_code == 200

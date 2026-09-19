@@ -61,4 +61,58 @@ describe('InspectorPanel', () => {
       name: 'Cliente',
     })
   })
+
+  it('conserva el borrador sucio cuando cambia la revision por una mutacion externa', async () => {
+    const document = documentWithClass()
+
+    const wrapper = mount(InspectorPanel, {
+      props: {
+        document,
+        selectedElementId: '00000000-0000-0000-0000-000000000010',
+        busy: false,
+      },
+    })
+
+    const nameInput = wrapper.find('input')
+    await nameInput.setValue('ClienteBorrador')
+
+    const updatedDocument = structuredClone(document)
+    updatedDocument.revision = 2
+    updatedDocument.diagramLayout.nodes['00000000-0000-0000-0000-000000000010'] = {
+      x: 220,
+      y: 180,
+      width: 280,
+      height: 180,
+    }
+
+    await wrapper.setProps({ document: updatedDocument })
+
+    expect((nameInput.element as HTMLInputElement).value).toBe('ClienteBorrador')
+    expect(wrapper.text()).toContain('Hay cambios sin guardar')
+  })
+
+  it('sincroniza el inspector en una nueva revision cuando no hay borrador sucio', async () => {
+    const document = documentWithClass()
+
+    const wrapper = mount(InspectorPanel, {
+      props: {
+        document,
+        selectedElementId: '00000000-0000-0000-0000-000000000010',
+        busy: false,
+      },
+    })
+
+    const updatedDocument = structuredClone(document)
+    updatedDocument.revision = 2
+    const updatedClass = updatedDocument.umlModel.elements[0]
+    if (!updatedClass || updatedClass.kind !== 'class') {
+      throw new Error('expected UML class fixture')
+    }
+    updatedClass.name = 'ClienteServidor'
+
+    await wrapper.setProps({ document: updatedDocument })
+
+    const nameInput = wrapper.find('input')
+    expect((nameInput.element as HTMLInputElement).value).toBe('ClienteServidor')
+  })
 })

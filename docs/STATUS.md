@@ -1,6 +1,6 @@
 # Estado real
 
-Fecha de actualizacion: 2026-09-15
+Fecha de actualizacion: 2026-09-18
 
 ## Completado
 
@@ -10,30 +10,31 @@ Fecha de actualizacion: 2026-09-15
 - [x] Alembic, tests frontend/backend, typecheck, build y Ruff en verde.
 - [x] Integracion visual Vue -> FastAPI verificada.
 - [x] Docker Compose documentado como alternativa opcional (`55432` en host -> `5432` en contenedor).
-- [x] Auditoría previa a CU-01: producto, roadmap PUDS, arquitectura, decisiones y gate base alineados.
+- [x] Auditoria previa a CU-01: producto, roadmap PUDS, arquitectura, decisiones y gate base alineados.
 
-## CUs de dominio completados
+## CUs completados
 
 - [x] CU-01 terminado: ProjectDocument, CanonicalUmlModel y DiagramLayout en memoria.
 - [x] CU-02 terminado: clases, atributos, operaciones y parametros UML.
 - [x] CU-03 terminado: relaciones UML, multiplicidades y convenciones semanticas de direccion.
 - [x] CU-04 terminado: diagnosticos de validacion semantica UML.
 - [x] CU-05 terminado: Command Bus encapsulado, snapshots y Undo/Redo.
+- [x] CU-06 terminado: canvas UML editable, inspector, relaciones, drag persistido, Undo/Redo y auto-layout.
 
 ## CU activo
 
-- [ ] CU-06 DONE: canvas UML editable, inspector, relaciones, drag persistido, Undo/Redo y auto-layout validados. CU-07 es NEXT / NOT_STARTED.
-## No implementado todavía
+- [ ] CU-07 NEXT / NOT_STARTED: persistir y recuperar proyectos.
+
+## No implementado todavia
 
 - [ ] Persistencia de proyectos.
 - [ ] Auth/ownership.
-- [ ] Canvas UML funcional.
 - [ ] Realtime/presencia.
-- [ ] Generación Spring Boot.
-- [ ] Generación Flutter.
+- [ ] Generacion Spring Boot.
+- [ ] Generacion Flutter.
 - [ ] IA/STT/XMI.
 - [ ] Despliegue AWS.
 
-## Próximo paso
+## Proximo paso
 
 CU-00: DONE. CU-01: DONE. CU-02: DONE. CU-03: DONE. CU-04: DONE. CU-05: DONE. CU-06: DONE. CU-07: NEXT / NOT_STARTED.

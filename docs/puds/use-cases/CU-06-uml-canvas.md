@@ -51,7 +51,7 @@ CU-05 cerrado. Frontend Vue 3/Vuetify/Pinia disponible. `@vue-flow/core` y `d3-d
 4. Pinia reemplaza su proyeccion local con la respuesta.
 5. El mapper `projectDocumentToFlow()` deriva nodes/edges sin mutar el documento.
 6. Vue Flow renderiza clases y relaciones; seleccion, zoom y pan son estado visual.
-7. Las mutaciones reales seguiran enviandose como `UmlCommand` al backend.
+7. Las mutaciones reales se envian como `UmlCommand` al backend.
 
 ## 8. Plan aprobado
 
@@ -80,9 +80,9 @@ Evidencia:
 
 **Objetivo:** proyectar el documento canonico mediante Vue Flow.
 
-**Implementacion preparada:** mapper determinista `ProjectDocument -> nodes/edges`, nodo de clase UML, relaciones como edges, workspace del editor, seleccion, zoom/pan, grid CSS y controles locales de viewport.
+**Implementado:** mapper determinista `ProjectDocument -> nodes/edges`, nodo de clase UML, relaciones como edges, workspace del editor, seleccion, zoom/pan, grid CSS y controles locales de viewport.
 
-**Regla:** los nodos siguen `nodesDraggable=false`; no persisten posiciones todavia.
+**Evidencia de I2:** durante este incremento los nodos se mantuvieron `nodesDraggable=false`; el movimiento persistido se habilito y valido en I3.
 
 **Resultado real:** APROBADO. 12 tests frontend, typecheck/build/gate completos y prueba manual con sesion real/canvas vacio.
 
@@ -90,7 +90,7 @@ Evidencia:
 
 **Objetivo:** habilitar modificaciones reales mediante `UmlCommand`.
 
-**Pendiente:** movimiento persistido con `SetNodeLayoutCommand`, crear/editar clases y relaciones, Undo/Redo UI, inspector, auto-layout `d3-dag`, validacion manual integral y cierre documental.
+**Implementado:** movimiento persistido con `SetNodeLayoutCommand`, crear/editar clases y relaciones, Undo/Redo UI, inspector, auto-layout `d3-dag`, validacion manual integral y cierre documental.
 
 **Resultado real:** APROBADO. Typecheck, tests, build, gate completo y prueba manual integral del editor completados.
 
@@ -113,7 +113,7 @@ El mapper no tiene efectos secundarios. Si una clase posee `DiagramLayout`, usa 
 
 Association, aggregation, composition y generalization conservan `sourceId` y `targetId` definidos por el dominio. Incremento 2 distingue las relaciones mediante etiqueta/color; marcadores UML especializados se completan junto con la edicion final si resultan necesarios.
 
-El canvas permanece read-only respecto al dominio: permite seleccion, zoom y pan, pero no drag persistente, conexiones ni borrado.
+I2 mantuvo el canvas read-only respecto al dominio. I3 habilito drag persistente, creacion, edicion y borrado, siempre mediante `UmlCommand` hacia el backend; Vue Flow nunca modifica `ProjectDocument` directamente.
 
 ## 11. Arquitectura
 
@@ -162,21 +162,21 @@ Incremento 2:
 | typecheck I1 | OK |
 | build I1 | OK |
 | gate I1 | OK |
-| mapper/node/App I2 | PENDING |
-| frontend completo I2 | PENDING |
-| gate completo I2 | PENDING |
+| mapper/node/App I2 | OK |
+| frontend completo I2 | 12 passed |
+| gate completo I2 | OK |
 
 ## 14. Pruebas manuales
 
-Incremento 2 requiere validar:
+En Incremento 2 se valido:
 - carga de la pantalla `Editor UML`;
 - canvas vacio al iniciar una sesion nueva;
 - grid y controles locales de viewport visibles;
 - zoom y pan;
 - ausencia de errores de consola;
-- sin capacidad de mover/crear/borrar elementos todavia.
+- ausencia de movimiento/creacion/borrado durante la fase read-only.
 
-Las pruebas visuales con clases/relaciones se completaran en Incremento 3 al habilitar creacion desde UI.
+Las pruebas visuales con clases/relaciones se completaron en Incremento 3 al habilitar la edicion por comandos.
 
 ## 15. Errores encontrados e iteraciones
 
@@ -194,11 +194,10 @@ CU-06, arquitectura, decisiones, estado, handoff, contexto, testing y roadmap.
 
 ## 18. Deuda tecnica y riesgos restantes
 
-- Sesiones efimeras hasta CU-07.
-- Contratos TypeScript deben mantenerse sincronizados con la forma publica Python.
-- Incremento 2 no persiste movimiento de nodos.
-- Marcadores graficos UML especializados se evaluan en Incremento 3.
-- No existe concurrencia/realtime en CU-06.
+- Las sesiones siguen siendo efimeras hasta CU-07 y se pierden al reiniciar FastAPI.
+- El bridge temporal es process-local, soporta un solo worker y esta limitado a 64 sesiones LRU.
+- Cada sesion serializa lecturas y mutaciones con un lock; almacenamiento compartido/realtime quedan fuera de CU-06.
+- Los contratos TypeScript deben mantenerse sincronizados con la forma publica Python.
 
 ## 19. Criterios de aceptacion y evidencia
 
@@ -206,7 +205,7 @@ CU-06, arquitectura, decisiones, estado, handoff, contexto, testing y roadmap.
 - [x] Los comandos HTTP reutilizan `UmlCommandBus`.
 - [x] Pinia no implementa historial paralelo.
 - [x] Incremento 1 pasa el gate completo.
-- [ ] `ProjectDocument` se proyecta correctamente en Vue Flow.
+- [x] `ProjectDocument` se proyecta correctamente en Vue Flow.
 - [x] Canvas read-only pasa typecheck/tests/build.
 - [x] Prueba manual del canvas read-only.
 - [x] Incremento 3 completa edicion y cierre.
@@ -217,16 +216,16 @@ DONE. Los tres incrementos fueron implementados y validados.
 
 ## 21. Commit y push
 
-No realizar commit ni push hasta completar y revisar CU-06.
+Commit base de CU-06: `f32dc53 feat(cu-06): implement UML canvas editor`. Los ajustes derivados del review del PR #1 se agregan como un commit de correccion en la misma rama antes del merge.
 ## 22. Evidencia final CU-06
 
 Validacion automatica final:
 
-- Backend: 137 tests passed, 2 warnings externos.
+- Backend: 138 tests passed, 2 warnings externos.
 - Ruff: OK.
 - pip check: OK.
 - Frontend typecheck: OK.
-- Frontend: 20 tests passed en 9 archivos.
+- Frontend: 22 tests passed en 9 archivos.
 - Frontend build: OK.
 - scripts/check.ps1: OK.
 
@@ -243,3 +242,16 @@ Validacion manual final:
 - canvas, zoom y controles funcionando sin errores bloqueantes.
 
 CU-06 queda cerrado y CU-07 pasa a ser el siguiente caso de uso.
+
+## 23. Ajustes por review del PR #1
+
+Antes del merge se revisaron los hallazgos de Copilot:
+
+- el bridge de sesiones permanece intencionalmente en memoria, pero ahora esta acotado a 64 sesiones LRU y documentado como single-worker;
+- cada sesion serializa estado/execute/undo/redo mediante un lock propio;
+- la creacion de relaciones respeta `busy` y el dialogo bloquea reenvios mientras hay una mutacion en vuelo;
+- el inspector conserva borradores dirty cuando una revision externa cambia por drag/auto-layout u otro comando;
+- la prueba de auto-layout exige jerarquia vertical en una relacion `source -> target`, evitando que un fallback de grilla oculte una falla del layout;
+- se corrigieron estados `IN_PROGRESS`/`PENDING`, checklists y referencias documentales obsoletas.
+
+La implementacion `import { dagre } from 'd3-dag'`, `new dagre.graphlib.Graph()` y `dagre.layout(...)` se conserva: corresponde a la API dagre-compatible expuesta por `d3-dag` 1.2.2.
