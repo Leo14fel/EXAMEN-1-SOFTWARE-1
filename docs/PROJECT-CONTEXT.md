@@ -10,7 +10,7 @@ La herramienta CASE es colaborativa y offline-first para modelado UML de clases.
 
 ## Estado actual
 
-CU-00 a CU-06 estan DONE. CU-05 establecio `UmlCommand -> UmlCommandBus -> execute_uml_command -> ProjectDocument` como unica ruta de mutacion. CU-06 agrego el canvas UML editable, inspector, relaciones, drag persistido, Undo/Redo y auto-layout sin convertir Vue Flow ni Pinia en fuente de verdad.
+CU-00 a CU-06 estan DONE. CU-07 esta IN_PROGRESS: su Incremento 1 persiste `ProjectDocument` en la tabla `projects` y expone creacion/listado/lectura, sin retirar el bridge temporal. CU-05 establecio `UmlCommand -> UmlCommandBus -> execute_uml_command -> ProjectDocument` como unica ruta de mutacion. CU-06 agrego el canvas UML editable, inspector, relaciones, drag persistido, Undo/Redo y auto-layout sin convertir Vue Flow ni Pinia en fuente de verdad.
 
 El bridge HTTP de CU-06 sigue siendo temporal y process-local: maximo 64 sesiones LRU, un lock por sesion y soporte de un solo worker FastAPI. Reiniciar el backend elimina el estado. CU-07 es NEXT / NOT_STARTED y debe introducir persistencia/recuperacion real conservando `ProjectDocument` como fuente canonica.
 

@@ -110,3 +110,7 @@ Cobertura agregada antes del merge:
 - preservacion de borradores dirty del inspector frente a revisiones externas;
 - resincronizacion del inspector cuando el borrador esta limpio;
 - asercion de layout jerarquico para una relacion dirigida, de modo que el fallback no pueda pasar la prueba principal de `d3-dag`.
+
+### CU-07 - Incremento 1 persistencia base
+
+Las pruebas unitarias de persistencia verifican el round-trip `ProjectDocument -> ProjectRecord -> ProjectDocument` con metadata, miembros, relacion, layout, UUIDs, revision y timestamps. Las pruebas API cubren creacion con owner temporal generado en backend, listado resumido, lectura validada y `PROJECT_NOT_FOUND`. No existe una base PostgreSQL de test aislada configurada, por lo que estas pruebas no ejecutan operaciones destructivas contra `examen_sw1`; `alembic upgrade head`, `alembic check` y el flujo HTTP real contra PostgreSQL son gates manuales de integracion.

@@ -118,3 +118,7 @@ El canvas permite drag visual, pero solo persiste la posicion al finalizar el mo
 ### Restriccion temporal de sesiones CU-06
 
 `/editor/sessions` es un bridge efimero y process-local, no persistencia. Antes de CU-07 se soporta un solo worker FastAPI, con maximo 64 sesiones LRU y un lock por sesion para serializar lectura, execute, undo y redo. Las requests activas pinnean su sesion: el eviction solo retira sesiones inactivas; si toda la capacidad esta ocupada por requests activas, crear otra sesion responde `503 EDITOR_SESSION_CAPACITY_REACHED`. CU-07 debe sustituir este almacenamiento temporal por persistencia/recuperacion de proyectos.
+
+## Persistencia de proyectos - CU-07 Incremento 1
+
+`projects` conserva una fila por `ProjectDocument`: identidad, owner estructural, metadata, revision y timestamps son columnas tipadas; `uml_model` y `diagram_layout` son columnas `JSONB` separadas. La persistencia no modela elementos UML en tablas relacionales ni reemplaza el documento como fuente canonica. Cada lectura reconstruye el documento mediante Pydantic antes de entregarlo. Este incremento agrega `POST /projects`, `GET /projects` y `GET /projects/{projectId}` sin crear `UmlCommandBus` en lecturas y sin retirar el bridge temporal de CU-06.

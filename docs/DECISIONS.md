@@ -103,3 +103,9 @@ El grid usa CSS y los controles llaman acciones de viewport de `@vue-flow/core`;
 Vue Flow puede mover visualmente un node durante el drag, pero el cambio real se confirma solo con `SetNodeLayoutCommand` en `node-drag-stop`. Toolbox e inspector construyen comandos publicos y esperan el nuevo `ProjectDocument` del backend. No existe historial, validacion estructural ni cascada de borrado duplicada en TypeScript.
 
 El inspector conserva el `kind` de una relacion al actualizarla porque CU-05 rechaza `ELEMENT_KIND_MISMATCH`. Cambiar association/aggregation/composition/generalization requiere eliminar y volver a crear la relacion. Una clase con relaciones no se ofrece para borrado hasta retirar esas relaciones, coherente con el rechazo atomico del executor.
+
+## ADR-lite 016 - ProjectDocument persistido como columnas tipadas y JSONB separado
+
+**Estado:** aceptada
+
+CU-07 persiste un unico `ProjectDocument` por fila en `projects`. Los metadatos de proyecto, revision, propiedad estructural e identidad/timestamps usan columnas tipadas; `CanonicalUmlModel` y `DiagramLayout` se guardan como `JSONB` separados. Esto conserva la forma JSON-safe Pydantic, evita dos fuentes de verdad y no adelanta tablas relacionales para elementos UML. Las lecturas deben revalidar el payload mediante `ProjectDocument.model_validate(...)`.

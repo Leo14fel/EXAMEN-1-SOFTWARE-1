@@ -6,7 +6,7 @@ CU-00 a CU-06 estan cerrados. El stack instalado es Vue 3 + TypeScript + Vite + 
 
 ## Proximo paso exacto
 
-CU-07 es NEXT / NOT_STARTED: persistir y recuperar proyectos sin duplicar `ProjectDocument` ni `UmlCommandBus`.
+CU-07 esta IN_PROGRESS. El Incremento 1 agrega `projects`, migracion Alembic y API de creacion/listado/lectura; el Incremento 2 debe agregar comandos persistentes con lock por proyecto, CAS por revision e invalidacion de buses.
 
 ## Restriccion temporal del editor CU-06
 

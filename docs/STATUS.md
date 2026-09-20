@@ -23,7 +23,7 @@ Fecha de actualizacion: 2026-09-18
 
 ## CU activo
 
-- [ ] CU-07 NEXT / NOT_STARTED: persistir y recuperar proyectos.
+- [ ] CU-07 IN_PROGRESS: Incremento 1 implementa persistencia, creacion, listado y lectura de proyectos; Incremento 2 agregara mutaciones persistentes.
 
 ## No implementado todavia
 
