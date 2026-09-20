@@ -39,6 +39,8 @@ interface RelationshipForm {
 
 const classDraft = ref<UmlClass | null>(null)
 const relationshipForm = ref<RelationshipForm | null>(null)
+const classDraftBaseline = ref<string | null>(null)
+const relationshipDraftBaseline = ref<string | null>(null)
 
 const classes = computed(() =>
   props.document.umlModel.elements.filter(
@@ -98,19 +100,27 @@ function visibilityLabel(value: UmlVisibility): string {
   return visibilityOptions.find((item) => item.value === value)?.title ?? value
 }
 
+function serializeDraft(value: unknown): string {
+  return JSON.stringify(value)
+}
+
 function syncDraft(): void {
   const element = selectedElement.value
   classDraft.value = null
   relationshipForm.value = null
+  classDraftBaseline.value = null
+  relationshipDraftBaseline.value = null
 
   if (!element) return
 
   if (element.kind === 'class') {
-    classDraft.value = structuredClone(toRaw(element))
+    const draft = structuredClone(toRaw(element))
+    classDraft.value = draft
+    classDraftBaseline.value = serializeDraft(draft)
     return
   }
 
-  relationshipForm.value = {
+  const form: RelationshipForm = {
     id: element.id,
     kind: element.kind,
     sourceId: element.sourceId,
@@ -122,13 +132,12 @@ function syncDraft(): void {
     targetUpper:
       element.kind === 'generalization' ? '1' : String(element.targetMultiplicity.upper),
   }
+
+  relationshipForm.value = form
+  relationshipDraftBaseline.value = serializeDraft(form)
 }
 
-watch(
-  () => [props.selectedElementId, props.document.revision],
-  syncDraft,
-  { immediate: true },
-)
+
 
 function addAttribute(): void {
   classDraft.value?.attributes.push(createAttribute())
@@ -172,6 +181,8 @@ function saveClass(): void {
     }
   }
 
+  classDraft.value = structuredClone(element)
+
   emit('execute', {
     commandType: 'updateElement',
     elementId: element.id,
@@ -205,6 +216,54 @@ function relationshipElement(): UmlRelationship | null {
     targetMultiplicity,
   }
 }
+
+const hasUnsavedChanges = computed(() => {
+  if (classDraft.value) {
+    return (
+      classDraftBaseline.value !== null &&
+      serializeDraft(classDraft.value) !== classDraftBaseline.value
+    )
+  }
+
+  if (relationshipForm.value) {
+    return (
+      relationshipDraftBaseline.value !== null &&
+      serializeDraft(relationshipForm.value) !== relationshipDraftBaseline.value
+    )
+  }
+
+  return false
+})
+
+function draftMatchesSelectedElement(): boolean {
+  const element = selectedElement.value
+  if (!element) return false
+
+  if (element.kind === 'class') {
+    return (
+      classDraft.value !== null &&
+      serializeDraft(toRaw(classDraft.value)) === serializeDraft(toRaw(element))
+    )
+  }
+
+  const draft = relationshipElement()
+  return draft !== null && serializeDraft(draft) === serializeDraft(toRaw(element))
+}
+
+watch(
+  () => props.selectedElementId,
+  syncDraft,
+  { immediate: true },
+)
+
+watch(
+  () => props.document.revision,
+  () => {
+    if (!hasUnsavedChanges.value || draftMatchesSelectedElement()) {
+      syncDraft()
+    }
+  },
+)
 
 function saveRelationship(): void {
   const element = relationshipElement()
@@ -263,6 +322,16 @@ function relationshipTitle(kind: UmlRelationship['kind']): string {
       <v-chip size="x-small" color="primary" variant="tonal" class="mb-4">
         Clase UML
       </v-chip>
+
+      <v-alert
+        v-if="hasUnsavedChanges"
+        type="warning"
+        variant="tonal"
+        density="compact"
+        class="mb-4"
+      >
+        Hay cambios sin guardar. Una actualización externa del canvas no reemplazará este borrador.
+      </v-alert>
 
       <v-text-field v-model="classDraft.name" label="Nombre" density="compact" />
       <v-select
@@ -427,6 +496,16 @@ function relationshipTitle(kind: UmlRelationship['kind']): string {
       <v-chip size="x-small" color="secondary" variant="tonal" class="mb-4">
         {{ relationshipTitle(relationshipForm.kind) }}
       </v-chip>
+
+      <v-alert
+        v-if="hasUnsavedChanges"
+        type="warning"
+        variant="tonal"
+        density="compact"
+        class="mb-4"
+      >
+        Hay cambios sin guardar. Una actualización externa del canvas no reemplazará este borrador.
+      </v-alert>
 
       <v-alert type="info" variant="tonal" density="compact" class="mb-4">
         El tipo de una relación no se cambia en sitio porque CU-05 exige conservar su

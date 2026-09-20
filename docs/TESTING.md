@@ -90,8 +90,8 @@ La validacion manual final debe crear al menos dos clases, editar atributos/oper
 
 ### Evidencia final CU-06
 
-- backend: 137 passed, 2 warnings externos;
-- frontend: 20 passed en 9 archivos;
+- backend: 139 passed, 2 warnings externos;
+- frontend: 22 passed en 9 archivos;
 - typecheck: OK;
 - build: OK;
 - Ruff: OK;
@@ -100,3 +100,13 @@ La validacion manual final debe crear al menos dos clases, editar atributos/oper
 - prueba manual: crear/editar clases, atributos y operaciones, relacion, drag con revision, Undo/Redo y auto-layout.
 
 El warning de chunks Vite mayores a 500 kB se registra como optimizacion futura y no bloquea CU-06.
+
+### Review PR #1 de CU-06
+
+Cobertura agregada antes del merge:
+
+- eviction LRU del bridge temporal de sesiones, excluyendo sesiones con requests activas;
+- serializacion de accesos concurrentes sobre una misma sesion;
+- preservacion de borradores dirty del inspector frente a revisiones externas;
+- resincronizacion del inspector cuando el borrador esta limpio;
+- asercion de layout jerarquico para una relacion dirigida, de modo que el fallback no pueda pasar la prueba principal de `d3-dag`.

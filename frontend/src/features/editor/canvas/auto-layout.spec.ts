@@ -62,5 +62,6 @@ describe('computeAutoLayout', () => {
     expect(result[customer.id]).toMatchObject({ width: 280, height: 180 })
     expect(result[order.id]).toMatchObject({ width: 280, height: 180 })
     expect(result[customer.id]).not.toEqual(result[order.id])
+    expect(result[customer.id].y).toBeLessThan(result[order.id].y)
   })
 })

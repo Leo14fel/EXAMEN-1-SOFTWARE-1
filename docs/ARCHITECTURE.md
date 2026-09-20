@@ -114,3 +114,7 @@ Incremento 2 mantiene `nodesDraggable=false`, `nodesConnectable=false` y no ofre
 El canvas permite drag visual, pero solo persiste la posicion al finalizar el movimiento mediante `SetNodeLayoutCommand`. Creacion, actualizacion y borrado de elementos utilizan `addElement`, `updateElement` y `removeElement`; Undo/Redo llaman al historial canonico del backend. El inspector nunca modifica `ProjectDocument` directamente.
 
 `d3-dag` calcula posiciones de auto-layout en frontend. Cada posicion calculada se envia despues como `SetNodeLayoutCommand`, por lo que el documento canonico sigue siendo la fuente de verdad. En CU-06 el auto-layout puede producir varias entradas de historial, una por clase, porque no existe un comando compuesto y no se introduce uno artificialmente en este CU.
+
+### Restriccion temporal de sesiones CU-06
+
+`/editor/sessions` es un bridge efimero y process-local, no persistencia. Antes de CU-07 se soporta un solo worker FastAPI, con maximo 64 sesiones LRU y un lock por sesion para serializar lectura, execute, undo y redo. Las requests activas pinnean su sesion: el eviction solo retira sesiones inactivas; si toda la capacidad esta ocupada por requests activas, crear otra sesion responde `503 EDITOR_SESSION_CAPACITY_REACHED`. CU-07 debe sustituir este almacenamiento temporal por persistencia/recuperacion de proyectos.

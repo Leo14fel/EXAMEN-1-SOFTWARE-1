@@ -1,22 +1,28 @@
 # Handoff
 
-## Último punto estable
+## Ultimo punto estable
 
-CU-00 a CU-05 estan cerrados. El stack instalado es Vue 3 + TypeScript + Vite + Vuetify y Python + FastAPI + SQLAlchemy + Alembic. La evidencia de CU-05 vive en `puds/use-cases/CU-05-command-bus-undo-redo.md`.
+CU-00 a CU-06 estan cerrados. El stack instalado es Vue 3 + TypeScript + Vite + Vuetify y Python + FastAPI + SQLAlchemy + Alembic. La evidencia de CU-06 vive en `docs/puds/use-cases/CU-06-uml-canvas.md`.
 
-## Próximo paso exacto
+## Proximo paso exacto
 
-CU-06 esta IN_PROGRESS. El Incremento 1 conecta Vue con el UmlCommandBus mediante sesiones HTTP temporales en memoria; validar este puente antes de implementar la proyeccion Vue Flow del Incremento 2.
+CU-07 es NEXT / NOT_STARTED: persistir y recuperar proyectos sin duplicar `ProjectDocument` ni `UmlCommandBus`.
 
-## Motivo de la reorganizacion
+## Restriccion temporal del editor CU-06
 
-PUDS es la unica fuente de roadmap. El orden ahora garantiza validacion antes del Command Bus y Command Bus antes del canvas mutable. CU-09 administra membresías e invitaciones antes de CU-10 realtime; AWS queda en CU-23 y la aceptacion integral del MVP en CU-24.
+El frontend no ejecuta ni replica el Command Bus. `frontend/src/features/editor/` contiene contratos TypeScript, cliente HTTP, store Pinia y la proyeccion Vue Flow.
+
+FastAPI mantiene un `UmlCommandBus` temporal por `sessionId` bajo `/editor/sessions`. Este bridge es process-local, esta acotado a 64 sesiones con eviction LRU, serializa lecturas y mutaciones con un lock por sesion y se soporta solamente con un worker de FastAPI. Reiniciar el backend elimina las sesiones. CU-07 reemplazara esta limitacion con persistencia/recuperacion real.
 
 ## Dominio actual
 
-`ProjectDocument` contiene UUID, metadata JSON-safe, ownerId estructural, revision, timestamps UTC, `CanonicalUmlModel` y `DiagramLayout`. El modelo canonico mantiene una union discriminada de clases y relaciones; association usa extremos neutrales, aggregation/composition van de todo a parte y generalization de hija a padre. Las multiplicidades son estructuradas, los UUID son globalmente unicos y el layout solo conserva posiciones y dimensiones de clases. `validate_uml_model` agrega diagnosticos semanticos sin mutar el modelo.
+`ProjectDocument` contiene UUID, metadata JSON-safe, ownerId estructural, revision, timestamps UTC, `CanonicalUmlModel` y `DiagramLayout`. El modelo canonico mantiene clases y relaciones; association usa extremos neutrales, aggregation/composition van de todo a parte y generalization de hija a padre. Las multiplicidades son estructuradas, los UUID son globalmente unicos y el layout solo conserva posiciones y dimensiones de clases.
 
-Toda futura mutacion debe recorrer `UmlCommand -> UmlCommandBus -> execute_uml_command -> ProjectDocument`; UI, canvas, IA y XMI no pueden modificar el documento directamente. El executor es puro y sin mutacion in-place. El bus encapsula su estado y entrega copias seguras a consumidores externos. Undo/Redo usa snapshots completos, conserva hasta 100 estados de undo y descarta el mas antiguo al superar el limite. La revision es monotona incluso en undo/redo, `updatedAt` no retrocede y un comando nuevo despues de undo invalida redo. Los errores usan codigos estables; diagnosticos semanticos de CU-04 no bloquean comandos estructuralmente validos. Eliminar una clase referenciada no hace cascada: se rechaza el comando de forma atomica.
+Toda mutacion UML recorre `UmlCommand -> UmlCommandBus -> execute_uml_command -> ProjectDocument`; UI, canvas, IA y XMI no modifican el documento directamente. Undo/Redo usa snapshots completos, conserva hasta 100 estados y mantiene revision/`updatedAt` monotonos.
+
+## Editor UML cerrado en CU-06
+
+El editor permite crear/editar/eliminar clases, atributos, operaciones, parametros y relaciones; mover nodos; Undo/Redo; auto-layout `d3-dag`; seleccion e inspector. Los borradores del inspector no se reemplazan por revisiones externas mientras existan cambios sin guardar.
 
 ## PostgreSQL actual
 
@@ -31,30 +37,19 @@ Desarrollo validado: PostgreSQL local de Windows en `localhost:5432`, base `exam
 .\scripts\check.ps1
 ```
 
-El gate base sin infraestructura externa ejecuta `backend: pytest`, `python -m compileall app`, `ruff check .`, `pip check`; y `frontend: npm run typecheck`, `npm test`, `npm run build`. `alembic check` y `/health/db` son checks de integración con PostgreSQL separados.
+El gate base sin infraestructura externa ejecuta `backend: pytest`, `python -m compileall app`, `ruff check .`, `pip check`; y `frontend: npm run typecheck`, `npm test`, `npm run build`. `alembic check` y `/health/db` son checks de integracion con PostgreSQL separados.
 
-## No hacer todavía
+## Evidencia CU-06 tras review del PR
 
-- no implementar Flutter;
-- no implementar AWS;
-- no instalar modelos de IA;
-- no crear el generador Spring Boot;
-- no diseñar contratos HTTP definitivos sin el CU correspondiente;
+- backend: 139 tests passed, 2 warnings externos;
+- frontend: 22 tests passed en 9 archivos;
+- typecheck/build/gate: OK;
+- prueba manual de canvas, drag, Undo/Redo, auto-layout y preservacion de borradores: OK.
+
+## No hacer todavia
+
+- no implementar persistencia fuera de CU-07;
+- no implementar auth antes de CU-08;
+- no implementar realtime/presencia antes de sus CUs;
+- no implementar Flutter, AWS, IA, XMI o generadores antes del CU correspondiente;
 - no empezar varios CU en paralelo.
-## CU-06 en curso
-
-El frontend no ejecuta ni replica el Command Bus. rontend/src/features/editor/ contiene contratos TypeScript, cliente HTTP y store Pinia de proyeccion. FastAPI mantiene temporalmente un UmlCommandBus por sessionId bajo /editor/sessions. Las sesiones desaparecen al reiniciar el backend y no requieren PostgreSQL; CU-07 incorporara persistencia. No iniciar el canvas visual hasta validar el Incremento 1.
-
-## CU-06 Incremento 2 preparado
-
-El Incremento 1 fue validado con 137 pruebas backend, 7 frontend y gate completo verde. El Incremento 2 reemplaza la pantalla de fundacion por `EditorWorkspace` y agrega una proyeccion read-only `ProjectDocument -> Vue Flow`. No iniciar Incremento 3 hasta validar typecheck, Vitest, build, gate y prueba manual del canvas.
-
-## CU-06 Incremento 3 preparado
-
-Incrementos 1 y 2 estan aprobados. El ultimo incremento agrega toolbox, inspector, atributos/operaciones/parametros, relaciones, drag persistido por Command Bus, Undo/Redo y auto-layout con `d3-dag`. No cerrar CU-06 hasta pasar typecheck, tests, build, gate completo y la prueba manual integral del editor.
-
-## CU-06 cerrado
-
-CU-06 quedo DONE tras validar bridge de sesiones, canvas Vue Flow, editor mutable, inspector, relaciones, drag persistido por `SetNodeLayoutCommand`, Undo/Redo y auto-layout con `d3-dag`. La suite final pasa con 137 tests backend y 20 frontend, ademas de typecheck/build/gate completo.
-
-Siguiente trabajo: CU-07 persistir y recuperar proyectos. La sesion de CU-06 sigue siendo efimera en memoria y se pierde al reiniciar FastAPI; CU-07 debe reemplazar esa limitacion sin duplicar `ProjectDocument` ni el Command Bus.

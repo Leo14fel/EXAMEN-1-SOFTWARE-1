@@ -7,10 +7,16 @@ import {
 } from './editor-elements'
 import type { UmlClass, UmlRelationship } from './types'
 
-const props = defineProps<{
-  modelValue: boolean
-  classes: UmlClass[]
-}>()
+const props = withDefaults(
+  defineProps<{
+    modelValue: boolean
+    classes: UmlClass[]
+    busy?: boolean
+  }>(),
+  {
+    busy: false,
+  },
+)
 
 const emit = defineEmits<{
   'update:modelValue': [value: boolean]
@@ -73,7 +79,7 @@ function close(): void {
 }
 
 function submit(): void {
-  if (!valid.value) return
+  if (props.busy || !valid.value) return
 
   const relationship = createRelationshipElement({
     kind: kind.value,
@@ -89,7 +95,12 @@ function submit(): void {
 </script>
 
 <template>
-  <v-dialog :model-value="modelValue" max-width="680" @update:model-value="emit('update:modelValue', $event)">
+  <v-dialog
+    :model-value="modelValue"
+    :persistent="busy"
+    max-width="680"
+    @update:model-value="emit('update:modelValue', $event)"
+  >
     <v-card title="Nueva relación UML">
       <v-card-text>
         <v-select
@@ -99,6 +110,7 @@ function submit(): void {
           item-value="value"
           label="Tipo de relación"
           density="comfortable"
+          :disabled="busy"
         />
 
         <div class="relationship-grid">
@@ -109,6 +121,7 @@ function submit(): void {
             item-value="id"
             label="Clase origen"
             density="comfortable"
+            :disabled="busy"
           />
           <v-select
             v-model="targetId"
@@ -117,6 +130,7 @@ function submit(): void {
             item-value="id"
             label="Clase destino"
             density="comfortable"
+            :disabled="busy"
           />
         </div>
 
@@ -125,19 +139,31 @@ function submit(): void {
         </v-alert>
 
         <div v-if="!isGeneralization" class="relationship-grid">
-          <v-text-field v-model="sourceLower" label="Origen mínimo" density="comfortable" />
+          <v-text-field
+            v-model="sourceLower"
+            label="Origen mínimo"
+            density="comfortable"
+            :disabled="busy"
+          />
           <v-text-field
             v-model="sourceUpper"
             label="Origen máximo"
             hint="Número o *"
             density="comfortable"
+            :disabled="busy"
           />
-          <v-text-field v-model="targetLower" label="Destino mínimo" density="comfortable" />
+          <v-text-field
+            v-model="targetLower"
+            label="Destino mínimo"
+            density="comfortable"
+            :disabled="busy"
+          />
           <v-text-field
             v-model="targetUpper"
             label="Destino máximo"
             hint="Número o *"
             density="comfortable"
+            :disabled="busy"
           />
         </div>
 
@@ -148,8 +174,14 @@ function submit(): void {
 
       <v-card-actions>
         <v-spacer />
-        <v-btn variant="text" @click="close">Cancelar</v-btn>
-        <v-btn color="primary" variant="flat" :disabled="!valid" @click="submit">
+        <v-btn variant="text" :disabled="busy" @click="close">Cancelar</v-btn>
+        <v-btn
+          color="primary"
+          variant="flat"
+          :disabled="busy || !valid"
+          :loading="busy"
+          @click="submit"
+        >
           Crear relación
         </v-btn>
       </v-card-actions>
