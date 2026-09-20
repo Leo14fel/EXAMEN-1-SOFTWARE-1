@@ -2,7 +2,7 @@
 
 ## Uso
 
-Este archivo acompana snapshots del repositorio. El estado real se obtiene del codigo y la documentacion del snapshot.
+Este archivo acompaña snapshots del repositorio. El estado real se obtiene del código y la documentación del snapshot.
 
 ## Producto y stack
 
