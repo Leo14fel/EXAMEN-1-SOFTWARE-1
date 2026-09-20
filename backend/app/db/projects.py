@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import DateTime, Integer, select
+from sqlalchemy import DateTime, Integer, select, update
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PostgreSQLUUID
 from sqlalchemy.orm import Mapped, Session, mapped_column
@@ -71,3 +71,23 @@ def get_project(session: Session, project_id: UUID) -> ProjectDocument | None:
 def list_projects(session: Session) -> Sequence[ProjectRecord]:
     statement = select(ProjectRecord).order_by(ProjectRecord.updated_at.desc())
     return session.scalars(statement).all()
+
+
+def update_project_if_revision(
+    session: Session, document: ProjectDocument, base_revision: int
+) -> bool:
+    data = document.model_dump(mode="json", by_alias=True)
+    result = session.execute(
+        update(ProjectRecord)
+        .where(ProjectRecord.id == document.id, ProjectRecord.revision == base_revision)
+        .values(
+            owner_id=document.owner_id,
+            project_metadata=data["metadata"],
+            revision=document.revision,
+            created_at=document.created_at,
+            updated_at=document.updated_at,
+            uml_model=data["umlModel"],
+            diagram_layout=data["diagramLayout"],
+        )
+    )
+    return result.rowcount == 1

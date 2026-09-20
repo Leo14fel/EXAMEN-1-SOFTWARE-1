@@ -23,7 +23,7 @@ Fecha de actualizacion: 2026-09-18
 
 ## CU activo
 
-- [ ] CU-07 IN_PROGRESS: Incremento 1 implementa persistencia, creacion, listado y lectura de proyectos; Incremento 2 agregara mutaciones persistentes.
+- [ ] CU-07 IN_PROGRESS: Incrementos 1 y 2 implementan persistencia, lectura y mutaciones con lock/CAS; Incremento 3 migrara la UI persistente.
 
 ## No implementado todavia
 

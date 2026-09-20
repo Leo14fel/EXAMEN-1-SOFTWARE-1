@@ -6,7 +6,7 @@ CU-00 a CU-06 estan cerrados. El stack instalado es Vue 3 + TypeScript + Vite + 
 
 ## Proximo paso exacto
 
-CU-07 esta IN_PROGRESS. El Incremento 1 agrega `projects`, migracion Alembic y API de creacion/listado/lectura; el Incremento 2 debe agregar comandos persistentes con lock por proyecto, CAS por revision e invalidacion de buses.
+CU-07 esta IN_PROGRESS. Los Incrementos 1 y 2 agregan `projects`, migracion Alembic, API de lectura y mutaciones persistentes con lock por proyecto, CAS por revision e invalidacion de buses. El Incremento 3 debe migrar el frontend y retirar el bridge temporal.
 
 ## Restriccion temporal del editor CU-06
 

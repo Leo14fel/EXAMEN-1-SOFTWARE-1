@@ -122,3 +122,5 @@ El canvas permite drag visual, pero solo persiste la posicion al finalizar el mo
 ## Persistencia de proyectos - CU-07 Incremento 1
 
 `projects` conserva una fila por `ProjectDocument`: identidad, owner estructural, metadata, revision y timestamps son columnas tipadas; `uml_model` y `diagram_layout` son columnas `JSONB` separadas. La persistencia no modela elementos UML en tablas relacionales ni reemplaza el documento como fuente canonica. Cada lectura reconstruye el documento mediante Pydantic antes de entregarlo. Este incremento agrega `POST /projects`, `GET /projects` y `GET /projects/{projectId}` sin crear `UmlCommandBus` en lecturas y sin retirar el bridge temporal de CU-06.
+
+El Incremento 2 agrega mutaciones en `/projects/{projectId}/commands`, `/undo` y `/redo`. Cada una serializa acceso con un lock process-local por proyecto, lee la revision autoritativa de PostgreSQL y aplica CAS al persistir el documento producido por `UmlCommandBus`. La cache de buses solo mantiene historial local: se descarta ante conflicto o fallo de almacenamiento y no se reconstruye tras reinicio.

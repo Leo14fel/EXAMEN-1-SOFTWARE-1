@@ -46,7 +46,7 @@ CU-06 mantiene `/editor/sessions` como bridge temporal process-local. PostgreSQL
 
 ## 8. Plan aprobado
 
-CU-07 se ejecuta en tres incrementos. Este documento registra solamente el Incremento 1.
+CU-07 se ejecuta en tres incrementos. Este documento registra los Incrementos 1 y 2.
 
 ## 9. Incrementos
 
@@ -62,13 +62,15 @@ CU-07 se ejecuta en tres incrementos. Este documento registra solamente el Incre
 
 **Objetivo:** ejecutar comandos, Undo y Redo con lock por proyecto, CAS por revision e invalidacion de buses ante conflicto o error de persistencia.
 
-**Estado:** NEXT.
+**Implementado:** endpoints persistentes de command/undo/redo, lock process-local por proyecto, cache efimera de `UmlCommandBus`, CAS SQL por revision e invalidacion de cache ante conflicto o error de almacenamiento.
+
+**Resultado real:** VALIDADO contra PostgreSQL local.
 
 ### Incremento 3 - Migrar editor y retirar bridge temporal
 
 **Objetivo:** migrar el frontend a proyectos persistentes y retirar `/editor/sessions` solo despues de validar la UI.
 
-**Estado:** PENDING.
+**Estado:** NEXT.
 
 ## 10. Diseño y decisiones utilizadas
 
@@ -78,6 +80,8 @@ La tabla unica `projects` contiene `id`, `owner_id`, `metadata`, `revision`, `cr
 
 Toda lectura reconstruye el payload mediante `ProjectDocument.model_validate(...)`; nunca retorna JSON de base de datos como sustituto del dominio. `ownerId` no llega desde el request: FastAPI genera un UUID temporal hasta CU-08.
 
+Las mutaciones adquieren un lock por `projectId`, recargan el documento persistido y comparan `baseRevision` antes de usar un `UmlCommandBus`. La cache process-local de buses conserva solamente snapshots de Undo/Redo durante la vida del proceso; no es fuente de verdad ni se persiste. El documento producido por el bus se actualiza mediante `UPDATE projects WHERE id = :id AND revision = :base_revision`. Si el CAS falla, o si una operacion de base de datos/commit falla despues de mutar el bus, se hace rollback y se descarta el bus cacheado. La siguiente request reconstruye desde PostgreSQL.
+
 ## 11. Implementación realizada
 
 - `ProjectRecord` mapea la tabla `projects`. El atributo Python para la columna SQL `metadata` es `project_metadata`, porque `DeclarativeBase.metadata` esta reservado.
@@ -86,6 +90,8 @@ Toda lectura reconstruye el payload mediante `ProjectDocument.model_validate(...
 - Se implementaron `POST /projects`, `GET /projects` y `GET /projects/{projectId}`.
 - El listado devuelve resumen ordenado por `updatedAt` descendente.
 - `backend/migrations/env.py` importa el modelo ORM antes de evaluar `Base.metadata`.
+- Se implementaron `POST /projects/{projectId}/commands`, `/undo` y `/redo`.
+- Las mutaciones usan lock por proyecto, CAS por revision y cache efimera de buses.
 
 ## 12. Archivos/componentes principales afectados
 
@@ -95,19 +101,20 @@ Toda lectura reconstruye el payload mediante `ProjectDocument.model_validate(...
 - `backend/migrations/versions/20260920_01_create_projects.py`
 - `backend/tests/db/test_project_persistence.py`
 - `backend/tests/api/test_projects.py`
+- `backend/tests/api/test_project_mutations.py`
 
 ## 13. Pruebas automáticas
 
 | Prueba/comando | Resultado | Evidencia/nota |
 |---|---|---|
-| `pytest` | 146 passed, 2 warnings externos | Incluye round-trip ORM/dominio, API y regresion de `/editor/sessions`. |
+| `pytest` | 156 passed, 2 warnings externos | Incluye CAS, locks, cache, Undo/Redo y regresion de `/editor/sessions`. |
 | `ruff check .` | OK | Sin hallazgos. |
 | `alembic history --verbose` | OK | Revision `20260920_01` es head. |
 | `alembic current` antes | `20260920_01 (head)` | PostgreSQL local ya tenia aplicada la revision al iniciar la validacion. |
 | `alembic upgrade head` | OK, sin operaciones pendientes | No se aplicaron cambios adicionales. |
 | `alembic current` despues | `20260920_01 (head)` | Estado confirmado tras upgrade. |
 | `alembic check` | `No new upgrade operations detected.` | Metadata y esquema sincronizados. |
-| `scripts/check.ps1` | OK | Backend 146 passed, frontend 22 passed, typecheck y build verdes. |
+| `scripts/check.ps1` | OK | Backend 156 passed, frontend 22 passed, typecheck y build verdes. |
 
 Las pruebas de persistencia son unitarias y no destruyen ni modifican `examen_sw1`. El repositorio no tiene configurada una base PostgreSQL de test aislada; la integracion real se valido manualmente contra la base local sin operaciones destructivas.
 
@@ -126,6 +133,16 @@ Validacion real contra PostgreSQL local el 2026-09-20:
 - una instancia FastAPI limpia del mismo backend recupero el documento identico desde PostgreSQL y fue detenida despues de la prueba; el listener existente en 8000 no tenia un PID atribuible de forma segura para reiniciarlo sin riesgo de afectar un proceso externo;
 - `POST /editor/sessions` respondio 200 con una sesion temporal valida, sin afectar el proyecto persistido.
 
+Validacion real del Incremento 2 contra PostgreSQL local:
+
+- se creo `b51a2c2b-0976-4cf0-98da-935d1a3d64ac`;
+- command con `baseRevision: 0` agrego `Customer`, devolvio revision 1 y `canUndo: true`; PostgreSQL confirmo el JSONB y la revision;
+- Undo con revision 1 devolvio revision 2 sin elementos y `canRedo: true`;
+- Redo con revision 2 devolvio revision 3 y restauro `Customer`;
+- despues de reiniciar una instancia limpia de FastAPI, GET recupero el documento de revision 3, pero Undo con la misma revision respondio `409 UNDO_NOT_AVAILABLE`, confirmando historial no durable;
+- un nuevo comando creo `Order` en revision 4 con `canUndo: true`; Undo en revision 4 persistio revision 5 y conservo solo `Customer`;
+- un comando con `baseRevision: 4` respondio `409 PROJECT_REVISION_CONFLICT`; PostgreSQL conservo revision 5 y el contenido autoritativo.
+
 ## 15. Errores encontrados e iteraciones de corrección
 
 - La columna SQL `metadata` no puede usar ese mismo atributo Python porque es reservado por SQLAlchemy; se usa `project_metadata` sin cambiar el esquema de base de datos.
@@ -143,7 +160,8 @@ CU-07, arquitectura, decisiones, estado, handoff, contexto y testing.
 
 - No hay base PostgreSQL de test aislada configurada; no se ejecutan pruebas de integracion destructivas contra `examen_sw1`.
 - `/editor/sessions` permanece intencionalmente hasta el Incremento 3.
-- El documento se puede guardar y recuperar, pero comandos, CAS, locks por proyecto y Undo/Redo persistente pertenecen al Incremento 2.
+- Undo/Redo no sobrevive al reinicio deliberadamente; solo se conserva dentro de la cache process-local de un bus activo.
+- El frontend aun usa `sessionId` y no consume las rutas persistentes hasta el Incremento 3.
 
 ## 19. Criterios de aceptación y evidencia
 
@@ -154,10 +172,14 @@ CU-07, arquitectura, decisiones, estado, handoff, contexto y testing.
 - [x] Proyecto inexistente responde `404 PROJECT_NOT_FOUND`.
 - [x] `/editor/sessions` conserva su suite existente verde.
 - [x] Migracion y endpoints integrados contra PostgreSQL local sin operaciones destructivas.
+- [x] Command, Undo y Redo persisten el documento resultado del `UmlCommandBus`.
+- [x] Lock local y CAS evitan que una mutacion obsoleta sobrescriba PostgreSQL.
+- [x] Conflicto o error de persistencia invalida el bus cacheado.
+- [x] Tras reinicio se recupera el documento, sin reconstruir historial Undo/Redo.
 
 ## 20. Estado final
 
-IN_PROGRESS. Incremento 1 implementado y validado contra PostgreSQL local. Incremento 2 es el siguiente paso.
+IN_PROGRESS. Incrementos 1 y 2 implementados y validados contra PostgreSQL local. Incremento 3 es el siguiente paso.
 
 ## 21. Commit y push
 

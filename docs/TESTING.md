@@ -114,3 +114,7 @@ Cobertura agregada antes del merge:
 ### CU-07 - Incremento 1 persistencia base
 
 Las pruebas unitarias de persistencia verifican el round-trip `ProjectDocument -> ProjectRecord -> ProjectDocument` con metadata, miembros, relacion, layout, UUIDs, revision y timestamps. Las pruebas API cubren creacion con owner temporal generado en backend, listado resumido, lectura validada y `PROJECT_NOT_FOUND`. No existe una base PostgreSQL de test aislada configurada, por lo que estas pruebas no ejecutan operaciones destructivas contra `examen_sw1`; `alembic upgrade head`, `alembic check` y el flujo HTTP real contra PostgreSQL son gates manuales de integracion.
+
+### CU-07 - Incremento 2 mutaciones persistentes
+
+Las pruebas API usan un repositorio transaccional en memoria para verificar execute, layout, relacion, Undo/Redo, revision y timestamps, comandos invalidos, proyecto inexistente, conflicto de revision, CAS sin fila actualizada, serializacion de dos requests mediante lock por proyecto, invalidacion de cache por conflicto/fallo de commit e historial vacio tras limpiar cache. La validacion manual PostgreSQL confirma command, Undo, Redo, reconstruccion de documento tras reinicio y Undo limitado a operaciones de la nueva instancia.

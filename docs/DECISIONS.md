@@ -109,3 +109,9 @@ El inspector conserva el `kind` de una relacion al actualizarla porque CU-05 rec
 **Estado:** aceptada
 
 CU-07 persiste un unico `ProjectDocument` por fila en `projects`. Los metadatos de proyecto, revision, propiedad estructural e identidad/timestamps usan columnas tipadas; `CanonicalUmlModel` y `DiagramLayout` se guardan como `JSONB` separados. Esto conserva la forma JSON-safe Pydantic, evita dos fuentes de verdad y no adelanta tablas relacionales para elementos UML. Las lecturas deben revalidar el payload mediante `ProjectDocument.model_validate(...)`.
+
+## ADR-lite 017 - Lock local y CAS para mutaciones persistentes
+
+**Estado:** aceptada
+
+CU-07 serializa execute, undo y redo por `projectId` con un lock process-local, porque `UmlCommandBus` mantiene estado mutable. PostgreSQL mantiene la autoridad entre procesos mediante `UPDATE ... WHERE id AND revision`. La cache process-local de buses solo conserva historial local y se invalida ante conflicto o error de persistencia; los snapshots no se guardan en PostgreSQL ni sobreviven un reinicio.

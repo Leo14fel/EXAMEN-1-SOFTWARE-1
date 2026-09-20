@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from types import SimpleNamespace
 from uuid import UUID
 
 from sqlalchemy.dialects import postgresql
@@ -8,6 +9,7 @@ from app.db.projects import (
     list_projects,
     project_document_from_record,
     project_record_from_document,
+    update_project_if_revision,
 )
 from app.domain.uml.models import (
     CanonicalUmlModel,
@@ -110,3 +112,20 @@ def test_list_projects_orders_by_updated_at_descending() -> None:
     assert session.statement is not None
     compiled = str(session.statement.compile(dialect=postgresql.dialect()))  # type: ignore[union-attr]
     assert "ORDER BY projects.updated_at DESC" in compiled
+
+
+def test_update_project_uses_id_and_revision_compare_and_swap() -> None:
+    class FakeSession:
+        statement: object | None = None
+
+        def execute(self, statement: object) -> SimpleNamespace:
+            self.statement = statement
+            return SimpleNamespace(rowcount=1)
+
+    session = FakeSession()
+    document = make_document()
+
+    assert update_project_if_revision(session, document, 3) is True  # type: ignore[arg-type]
+    assert session.statement is not None
+    compiled = str(session.statement.compile(dialect=postgresql.dialect()))  # type: ignore[union-attr]
+    assert "WHERE projects.id = %(id_1)s::UUID AND projects.revision = %(revision_1)s" in compiled
