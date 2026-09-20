@@ -1,3 +1,6 @@
+from concurrent.futures import ThreadPoolExecutor
+from threading import Event, Lock
+from time import monotonic, sleep
 from uuid import UUID, uuid4
 
 import pytest
@@ -137,3 +140,67 @@ def test_editor_sessions_are_bounded_and_evict_least_recently_used(
 
     assert client.get(f'/editor/sessions/{first["sessionId"]}').status_code == 200
     assert client.get(f'/editor/sessions/{third["sessionId"]}').status_code == 200
+
+def test_active_session_is_pinned_and_same_session_access_is_serialized(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(editor, "_MAX_EDITOR_SESSIONS", 1)
+    created = create_session()
+    session_id = UUID(str(created["sessionId"]))
+
+    first_state_entered = Event()
+    release_first_state = Event()
+    state_calls: list[UUID] = []
+    state_calls_lock = Lock()
+    original_state = editor._state
+
+    def blocking_state(current_session_id: UUID, bus: object):
+        with state_calls_lock:
+            state_calls.append(current_session_id)
+            call_number = len(state_calls)
+
+        if call_number == 1:
+            first_state_entered.set()
+            assert release_first_state.wait(timeout=3)
+
+        return original_state(current_session_id, bus)
+
+    monkeypatch.setattr(editor, "_state", blocking_state)
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        first_request = executor.submit(editor.get_editor_session, session_id)
+        assert first_state_entered.wait(timeout=3)
+
+        second_started = Event()
+
+        def second_get():
+            second_started.set()
+            return editor.get_editor_session(session_id)
+
+        second_request = executor.submit(second_get)
+        assert second_started.wait(timeout=3)
+
+        deadline = monotonic() + 3
+        active_requests = 0
+        while monotonic() < deadline:
+            with editor._editor_sessions_lock:
+                active_requests = editor._editor_sessions[session_id].active_requests
+            if active_requests == 2:
+                break
+            sleep(0.01)
+
+        assert active_requests == 2
+
+        with state_calls_lock:
+            assert len(state_calls) == 1
+
+        capacity_response = client.post("/editor/sessions")
+        assert capacity_response.status_code == 503
+        assert capacity_response.json()["detail"]["code"] == "EDITOR_SESSION_CAPACITY_REACHED"
+
+        release_first_state.set()
+
+        assert first_request.result(timeout=3).session_id == session_id
+        assert second_request.result(timeout=3).session_id == session_id
+
+    assert client.get(f"/editor/sessions/{session_id}").status_code == 200

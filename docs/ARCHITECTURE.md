@@ -117,4 +117,4 @@ El canvas permite drag visual, pero solo persiste la posicion al finalizar el mo
 
 ### Restriccion temporal de sesiones CU-06
 
-`/editor/sessions` es un bridge efimero y process-local, no persistencia. Antes de CU-07 se soporta un solo worker FastAPI, con maximo 64 sesiones LRU y un lock por sesion para serializar lectura, execute, undo y redo. CU-07 debe sustituir este almacenamiento temporal por persistencia/recuperacion de proyectos.
+`/editor/sessions` es un bridge efimero y process-local, no persistencia. Antes de CU-07 se soporta un solo worker FastAPI, con maximo 64 sesiones LRU y un lock por sesion para serializar lectura, execute, undo y redo. Las requests activas pinnean su sesion: el eviction solo retira sesiones inactivas; si toda la capacidad esta ocupada por requests activas, crear otra sesion responde `503 EDITOR_SESSION_CAPACITY_REACHED`. CU-07 debe sustituir este almacenamiento temporal por persistencia/recuperacion de proyectos.

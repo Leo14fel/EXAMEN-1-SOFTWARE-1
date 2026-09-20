@@ -221,7 +221,7 @@ Commit base de CU-06: `f32dc53 feat(cu-06): implement UML canvas editor`. Los aj
 
 Validacion automatica final:
 
-- Backend: 138 tests passed, 2 warnings externos.
+- Backend: 139 tests passed, 2 warnings externos.
 - Ruff: OK.
 - pip check: OK.
 - Frontend typecheck: OK.
@@ -249,6 +249,7 @@ Antes del merge se revisaron los hallazgos de Copilot:
 
 - el bridge de sesiones permanece intencionalmente en memoria, pero ahora esta acotado a 64 sesiones LRU y documentado como single-worker;
 - cada sesion serializa estado/execute/undo/redo mediante un lock propio;
+- las requests activas pinnean su sesion y quedan excluidas del eviction; si toda la capacidad esta activa, una nueva sesion responde `503 EDITOR_SESSION_CAPACITY_REACHED`;
 - la creacion de relaciones respeta `busy` y el dialogo bloquea reenvios mientras hay una mutacion en vuelo;
 - el inspector conserva borradores dirty cuando una revision externa cambia por drag/auto-layout u otro comando;
 - la prueba de auto-layout exige jerarquia vertical en una relacion `source -> target`, evitando que un fallback de grilla oculte una falla del layout;

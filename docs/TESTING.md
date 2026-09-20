@@ -90,7 +90,7 @@ La validacion manual final debe crear al menos dos clases, editar atributos/oper
 
 ### Evidencia final CU-06
 
-- backend: 138 passed, 2 warnings externos;
+- backend: 139 passed, 2 warnings externos;
 - frontend: 22 passed en 9 archivos;
 - typecheck: OK;
 - build: OK;
@@ -105,7 +105,8 @@ El warning de chunks Vite mayores a 500 kB se registra como optimizacion futura 
 
 Cobertura agregada antes del merge:
 
-- eviction LRU del bridge temporal de sesiones;
+- eviction LRU del bridge temporal de sesiones, excluyendo sesiones con requests activas;
+- serializacion de accesos concurrentes sobre una misma sesion;
 - preservacion de borradores dirty del inspector frente a revisiones externas;
 - resincronizacion del inspector cuando el borrador esta limpio;
 - asercion de layout jerarquico para una relacion dirigida, de modo que el fallback no pueda pasar la prueba principal de `d3-dag`.

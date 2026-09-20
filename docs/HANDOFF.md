@@ -41,10 +41,10 @@ El gate base sin infraestructura externa ejecuta `backend: pytest`, `python -m c
 
 ## Evidencia CU-06 tras review del PR
 
-- backend esperado tras el ajuste: 138 tests;
-- frontend esperado tras el ajuste: 22 tests en 9 archivos;
-- typecheck/build/gate deben volver a ejecutarse antes del merge;
-- la prueba manual previa de canvas, drag, Undo/Redo y auto-layout ya fue aprobada.
+- backend: 139 tests passed, 2 warnings externos;
+- frontend: 22 tests passed en 9 archivos;
+- typecheck/build/gate: OK;
+- prueba manual de canvas, drag, Undo/Redo, auto-layout y preservacion de borradores: OK.
 
 ## No hacer todavia
 
