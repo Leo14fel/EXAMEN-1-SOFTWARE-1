@@ -1,6 +1,6 @@
 # CU-07 - Persistir y recuperar proyectos
 
-**Estado:** IN_PROGRESS
+**Estado:** DONE
 
 ## 1. Objetivo
 
@@ -28,13 +28,11 @@ Secciones 3, 6, 10, 11, 20 y 34.
 
 ### Fuera de alcance
 
-- Mutaciones persistentes, revision optimista, locks por proyecto y cache de buses.
-- Undo/Redo persistente.
 - Auth, ownership real, realtime, presencia, IA, XMI, generacion, Flutter y AWS.
 
 ## 6. Precondiciones
 
-CU-06 mantiene `/editor/sessions` como bridge temporal process-local. PostgreSQL, SQLAlchemy y Alembic ya estan configurados.
+PostgreSQL, SQLAlchemy y Alembic estan configurados. El bridge temporal de CU-06 fue retirado en el Incremento 3.
 
 ## 7. Escenarios / flujo principal
 
@@ -46,7 +44,7 @@ CU-06 mantiene `/editor/sessions` como bridge temporal process-local. PostgreSQL
 
 ## 8. Plan aprobado
 
-CU-07 se ejecuta en tres incrementos. Los tres estan implementados; falta prueba manual humana final del editor persistente.
+CU-07 se ejecuto en tres incrementos, todos terminados y validados.
 
 ## 9. Incrementos
 
@@ -56,7 +54,7 @@ CU-07 se ejecuta en tres incrementos. Los tres estan implementados; falta prueba
 
 **Implementado:** tabla `projects`, conversiones validadas, dependencia SQLAlchemy por request, migracion Alembic y API de creacion/listado/lectura.
 
-**Resultado real:** VALIDADO contra PostgreSQL local. CU-07 permanece IN_PROGRESS.
+**Resultado real:** DONE. Validado contra PostgreSQL local y el gate final.
 
 ### Incremento 2 - Mutaciones persistentes
 
@@ -64,7 +62,7 @@ CU-07 se ejecuta en tres incrementos. Los tres estan implementados; falta prueba
 
 **Implementado:** endpoints persistentes de command/undo/redo, lock process-local por proyecto, cache efimera de `UmlCommandBus`, CAS SQL por revision e invalidacion de cache ante conflicto o error de almacenamiento.
 
-**Resultado real:** VALIDADO contra PostgreSQL local.
+**Resultado real:** DONE. Validado contra PostgreSQL local y el gate final.
 
 ### Incremento 3 - Migrar editor y retirar bridge temporal
 
@@ -72,7 +70,7 @@ CU-07 se ejecuta en tres incrementos. Los tres estan implementados; falta prueba
 
 **Implementado:** cliente HTTP, store Pinia y workspace migrados de sesiones a proyectos; listado/creacion/apertura de proyectos; `baseRevision` centralizada; recuperacion ante conflicto; retiro completo del bridge temporal.
 
-**Resultado real:** implementado y validado automaticamente y por API contra una instancia limpia. Pendiente prueba manual humana final de la UI.
+**Resultado real:** DONE. Validado automaticamente, por API contra una instancia limpia y mediante prueba manual humana final de la UI.
 
 ## 10. Diseño y decisiones utilizadas
 
@@ -117,14 +115,18 @@ Las mutaciones adquieren un lock por `projectId`, recargan el documento persisti
 
 | Prueba/comando | Resultado | Evidencia/nota |
 |---|---|---|
-| `pytest` | 149 passed, 2 warnings externos | El bridge temporal fue retirado; conserva dominio, persistencia, CAS y Undo/Redo. |
+| `pytest` | 150 passed, 2 warnings | El bridge temporal fue retirado; conserva dominio, persistencia, CAS y Undo/Redo. |
+| `python -m compileall app` | OK | Compilacion del backend sin errores. |
 | `ruff check .` | OK | Sin hallazgos. |
 | `alembic history --verbose` | OK | Revision `20260920_01` es head. |
 | `alembic current` antes | `20260920_01 (head)` | PostgreSQL local ya tenia aplicada la revision al iniciar la validacion. |
 | `alembic upgrade head` | OK, sin operaciones pendientes | No se aplicaron cambios adicionales. |
 | `alembic current` despues | `20260920_01 (head)` | Estado confirmado tras upgrade. |
 | `alembic check` | `No new upgrade operations detected.` | Metadata y esquema sincronizados. |
-| `scripts/check.ps1` | OK | Backend 149 passed, frontend 27 passed, typecheck y build verdes. |
+| `npm run typecheck` | OK | TypeScript sin errores. |
+| `npm test` | 27 passed | Suite frontend aprobada. |
+| `npm run build` | OK | Build frontend aprobado. |
+| `scripts/check.ps1` | OK | Gate global aprobado. |
 
 Las pruebas de persistencia son unitarias y no destruyen ni modifican `examen_sw1`. El repositorio no tiene configurada una base PostgreSQL de test aislada; la integracion real se valido manualmente contra la base local sin operaciones destructivas.
 
@@ -162,6 +164,15 @@ Validacion tecnica del Incremento 3 contra PostgreSQL local:
 - Undo tras reinicio respondio `409 UNDO_NOT_AVAILABLE` como corresponde al historial no durable;
 - un nuevo comando, Undo y Redo persistieron revisiones 5, 6 y 7 respectivamente.
 
+Prueba manual humana final aprobada el 2026-09-21:
+
+- frontend en `http://localhost:5173` y backend actual en `http://127.0.0.1:8000`;
+- OpenAPI confirmo `GET/POST /projects`, `GET /projects/{project_id}`, `POST /projects/{project_id}/commands`, `POST /projects/{project_id}/undo` y `POST /projects/{project_id}/redo`;
+- se crearon y abrieron proyectos, clases, atributos y relaciones; tambien se validaron movimiento de nodos/layout, auto-layout e inspector;
+- Undo y Redo funcionaron antes y despues de reiniciar FastAPI;
+- al reabrir el mismo proyecto tras el reinicio se conservaron clases, atributos, relaciones y layout; una operacion nueva posterior al reinicio y su Undo/Redo funcionaron correctamente;
+- el 404 observado en una validacion anterior provenia de una instancia antigua de FastAPI en el puerto 8000, no del codigo actual. La instancia actual registro las cinco rutas esperadas.
+
 ## 15. Errores encontrados e iteraciones de corrección
 
 - La columna SQL `metadata` no puede usar ese mismo atributo Python porque es reservado por SQLAlchemy; se usa `project_metadata` sin cambiar el esquema de base de datos.
@@ -179,7 +190,7 @@ CU-07, arquitectura, decisiones, estado, handoff, contexto y testing.
 
 - No hay base PostgreSQL de test aislada configurada; no se ejecutan pruebas de integracion destructivas contra `examen_sw1`.
 - Undo/Redo no sobrevive al reinicio deliberadamente; solo se conserva dentro de la cache process-local de un bus activo.
-- Falta la prueba manual humana final de UI antes de cerrar CU-07.
+- No hay deuda bloqueante de CU-07. Undo/Redo sigue siendo efimero por proceso; despues de reiniciar, las operaciones nuevas vuelven a crear historial para esa instancia.
 
 ## 19. Criterios de aceptación y evidencia
 
@@ -195,12 +206,12 @@ CU-07, arquitectura, decisiones, estado, handoff, contexto y testing.
 - [x] Tras reinicio se recupera el documento, sin reconstruir historial Undo/Redo.
 - [x] Frontend usa proyectos persistentes, revision autoritativa y respuesta del backend.
 - [x] Bridge temporal de CU-06 retirado sin referencias residuales de codigo.
-- [ ] Prueba manual humana final: crear/abrir/editar proyecto desde UI y verificar recuperacion tras reinicio.
+- [x] Prueba manual humana final: crear/abrir/editar proyecto desde UI y verificar recuperacion tras reinicio.
 
 ## 20. Estado final
 
-IN_PROGRESS. Incrementos 1 y 2 DONE. Incremento 3 implementado; pendiente prueba manual humana final antes de cerrar CU-07.
+DONE. Incremento 1 DONE. Incremento 2 DONE. Incremento 3 DONE. La prueba manual humana final fue aprobada.
 
 ## 21. Commit y push
 
-No se ejecutaron commit ni push.
+Commits de implementacion: `11afae4`, `163c978` y `1871e2d`. El commit de cierre documental se registra al completar esta actualizacion. No se hizo push.

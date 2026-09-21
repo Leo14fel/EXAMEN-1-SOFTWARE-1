@@ -122,3 +122,11 @@ Las pruebas API usan un repositorio transaccional en memoria para verificar exec
 ### CU-07 - Incremento 3 editor persistente
 
 Las pruebas frontend cubren listado, creacion, apertura y cambio de proyectos, envio centralizado de `baseRevision`, respuesta autoritativa, Undo/Redo y recuperacion ante `PROJECT_REVISION_CONFLICT` sin confundir errores UML. Las pruebas existentes de canvas, relaciones, auto-layout e inspector dirty se mantienen. Al retirar `/editor/sessions`, se eliminan solamente sus pruebas exclusivas; la suite backend conserva dominio, persistencia, CAS y Undo/Redo.
+
+### Evidencia final CU-07
+
+- backend: `pytest` 150 passed, 2 warnings; `python -m compileall app`, `ruff check .` y `pip check`: OK;
+- frontend: `npm run typecheck`: OK; `npm test`: 27 passed; `npm run build`: OK;
+- global: `scripts/check.ps1`: OK;
+- PostgreSQL: `python -m alembic check` informa `No new upgrade operations detected.` y `GET /health/db`: 200 OK;
+- prueba manual humana final aprobada: crear y abrir proyecto, clases, atributos, relacion, movimiento/layout, auto-layout, inspector, Undo/Redo y recuperacion de clases, atributos, relaciones y layout despues de reiniciar FastAPI. Una nueva operacion posterior al reinicio y su Undo/Redo tambien fueron aprobados.

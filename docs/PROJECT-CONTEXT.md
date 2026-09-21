@@ -10,9 +10,9 @@ La herramienta CASE es colaborativa y offline-first para modelado UML de clases.
 
 ## Estado actual
 
-CU-00 a CU-06 estan DONE. CU-07 esta IN_PROGRESS: sus tres incrementos persisten `ProjectDocument`, exponen lectura y mutaciones con lock/CAS y conectan el editor Vue a `/projects`. CU-05 establecio `UmlCommand -> UmlCommandBus -> execute_uml_command -> ProjectDocument` como unica ruta de mutacion. CU-06 agrego el canvas UML editable, inspector, relaciones, drag persistido, Undo/Redo y auto-layout sin convertir Vue Flow ni Pinia en fuente de verdad.
+CU-00 a CU-07 estan DONE. CU-07 persiste `ProjectDocument`, expone lectura y mutaciones con lock/CAS y conecta el editor Vue a `/projects`; la prueba manual humana final confirmo la recuperacion de contenido y layout tras reiniciar FastAPI. CU-05 establecio `UmlCommand -> UmlCommandBus -> execute_uml_command -> ProjectDocument` como unica ruta de mutacion. CU-06 agrego el canvas UML editable, inspector, relaciones, drag persistido, Undo/Redo y auto-layout sin convertir Vue Flow ni Pinia en fuente de verdad.
 
-El bridge HTTP de CU-06 sigue siendo temporal y process-local: maximo 64 sesiones LRU, un lock por sesion y soporte de un solo worker FastAPI. Reiniciar el backend elimina el estado. CU-07 es NEXT / NOT_STARTED y debe introducir persistencia/recuperacion real conservando `ProjectDocument` como fuente canonica.
+El bridge HTTP temporal de CU-06 fue retirado en CU-07. Los proyectos y mutaciones usan `/projects`; PostgreSQL es la fuente persistente y el cache process-local del bus conserva solo el historial de Undo/Redo de la instancia actual. Tras reiniciar, el documento se recupera desde PostgreSQL y las operaciones nuevas generan historial para la nueva instancia.
 
 La base validada es PostgreSQL local de Windows: `localhost:5432/examen_sw1`, usuario `postgres`. Docker Compose es opcional y publica `localhost:55432` hacia `5432` dentro del contenedor.
 
@@ -26,7 +26,7 @@ La base validada es PostgreSQL local de Windows: `localhost:5432/examen_sw1`, us
 
 ## Roadmap
 
-`docs/puds/` es la unica fuente de roadmap y CUs. CU-06 esta DONE y CU-07 es el siguiente caso de uso: persistir y recuperar proyectos. CU-08 incorpora auth/ownership. CU-09 administra acceso de colaboradores antes de CU-10 realtime. AWS se implementara en CU-23 y CU-24 ejecutara la aceptacion integral del MVP.
+`docs/puds/` es la unica fuente de roadmap y CUs. CU-07 esta DONE; CU-08 incorpora auth/ownership. CU-09 administra acceso de colaboradores antes de CU-10 realtime. AWS se implementara en CU-23 y CU-24 ejecutara la aceptacion integral del MVP.
 
 ## Editor CU-06
 
