@@ -143,7 +143,6 @@ Validacion real contra PostgreSQL local el 2026-09-20:
 - `GET /projects/{id}` devolvio el `ProjectDocument` completo y validado;
 - consulta directa PostgreSQL confirmo la fila, owner, revision, metadata, JSONB vacios y timestamps;
 - una instancia FastAPI limpia del mismo backend recupero el documento identico desde PostgreSQL y fue detenida despues de la prueba; el listener existente en 8000 no tenia un PID atribuible de forma segura para reiniciarlo sin riesgo de afectar un proceso externo;
-- `POST /editor/sessions` respondio 200 con una sesion temporal valida, sin afectar el proyecto persistido.
 
 Validacion real del Incremento 2 contra PostgreSQL local:
 

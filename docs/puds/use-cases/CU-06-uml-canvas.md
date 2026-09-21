@@ -115,7 +115,7 @@ Association, aggregation, composition y generalization conservan `sourceId` y `t
 
 I2 mantuvo el canvas read-only respecto al dominio. I3 habilito drag persistente, creacion, edicion y borrado, siempre mediante `UmlCommand` hacia el backend; Vue Flow nunca modifica `ProjectDocument` directamente.
 
-## 11. Arquitectura
+## 11. Arquitectura historica de Incremento 1
 
 ```text
 Vue Flow (proyeccion visual)
@@ -124,7 +124,7 @@ Vue Flow (proyeccion visual)
 ProjectDocument recibido por Pinia
         ^
         |
-FastAPI /editor/sessions
+FastAPI /editor/sessions (retirado en CU-07)
         |
 UmlCommandBus
 ```

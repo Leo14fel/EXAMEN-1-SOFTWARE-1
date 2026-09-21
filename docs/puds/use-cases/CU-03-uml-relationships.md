@@ -155,3 +155,11 @@ git push -u origin feat/cu-03-uml-relationships
 ```
 
 No se ejecutaron commit ni push.
+
+## 22. Evolucion posterior - UML Editor Completeness Incremento 1
+
+El dominio soportado permanece limitado a `UmlAssociation`, `UmlAggregation`, `UmlComposition` y `UmlGeneralization`. `Dependency` y `Realization` no forman parte de este alcance.
+
+Association, aggregation y composition permiten autorrelaciones de classifier. Generalization no permite `sourceId == targetId` ni ciclos directos o indirectos. Estas dos invariantes se verifican en dominio al construir el resultado candidato de un comando, antes de que `UmlCommandBus` agregue un snapshot o que CU-07 lo persista.
+
+La validacion diagnostica sigue separada de la admisibilidad de comandos: solo `GENERALIZATION_SELF_REFERENCE` y `GENERALIZATION_CYCLE` bloquean esta ruta. Las demas reglas semanticas no cambian de comportamiento. Cambiar el tipo de una relacion continua requiriendo eliminarla y crear una nueva.

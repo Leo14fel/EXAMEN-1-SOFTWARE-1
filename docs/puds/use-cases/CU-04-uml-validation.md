@@ -1,6 +1,6 @@
 # CU-04 - Validacion UML
 
-**Estado:** READY_FOR_USER_VALIDATION
+**Estado:** DONE
 
 ## 1. Objetivo
 
@@ -131,7 +131,7 @@ No aplica: CU-04 no introduce LLM, VLM ni STT.
 
 ## 16. Estado final
 
-READY_FOR_USER_VALIDATION. No se marca DONE hasta aprobacion del usuario.
+DONE. El usuario reviso y aprobo CU-04.
 
 ## 17. Commit y push
 

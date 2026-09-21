@@ -34,6 +34,7 @@ from app.domain.uml.validation import (
     UmlDiagnosticCode,
     UmlDiagnosticSeverity,
     UmlValidationResult,
+    find_generalization_admissibility_violation,
     validate_uml_model,
 )
 
@@ -69,5 +70,6 @@ __all__ = [
     "UmlValidationResult",
     "UpdateUmlElementCommand",
     "execute_uml_command",
+    "find_generalization_admissibility_violation",
     "validate_uml_model",
 ]

@@ -16,9 +16,12 @@ from app.domain.uml.models import (
     DiagramLayout,
     DiagramNodeLayout,
     ProjectDocument,
+    UmlAggregation,
     UmlAssociation,
     UmlAttribute,
     UmlClass,
+    UmlComposition,
+    UmlGeneralization,
     UmlMultiplicity,
     UmlOperation,
     UmlParameter,
@@ -60,13 +63,26 @@ def make_document() -> ProjectDocument:
         ],
     )
     order = UmlClass(id=ORDER_ID, name="Order", visibility="public")
-    relationship = UmlAssociation(
+    association = UmlAssociation(
         id=RELATIONSHIP_ID,
         sourceId=CUSTOMER_ID,
         targetId=ORDER_ID,
         sourceMultiplicity=UmlMultiplicity(lower=1, upper=1),
         targetMultiplicity=UmlMultiplicity(lower=0, upper="*"),
     )
+    aggregation = UmlAggregation(
+        sourceId=ORDER_ID,
+        targetId=CUSTOMER_ID,
+        sourceMultiplicity=UmlMultiplicity(lower=1, upper=1),
+        targetMultiplicity=UmlMultiplicity(lower=0, upper="*"),
+    )
+    composition = UmlComposition(
+        sourceId=CUSTOMER_ID,
+        targetId=ORDER_ID,
+        sourceMultiplicity=UmlMultiplicity(lower=0, upper=1),
+        targetMultiplicity=UmlMultiplicity(lower=1, upper="*"),
+    )
+    generalization = UmlGeneralization(sourceId=ORDER_ID, targetId=CUSTOMER_ID)
     return ProjectDocument(
         id=PROJECT_ID,
         ownerId=OWNER_ID,
@@ -74,7 +90,9 @@ def make_document() -> ProjectDocument:
         revision=4,
         createdAt=CREATED_AT,
         updatedAt=UPDATED_AT,
-        umlModel=CanonicalUmlModel(elements=[customer, order, relationship]),
+        umlModel=CanonicalUmlModel(
+            elements=[customer, order, association, aggregation, composition, generalization]
+        ),
         diagramLayout=DiagramLayout(
             nodes={
                 CUSTOMER_ID: DiagramNodeLayout(x=10, y=20, width=220, height=160),
@@ -92,6 +110,14 @@ def test_project_document_round_trips_through_project_record() -> None:
     assert restored == document
     assert restored.uml_model.elements[0].id == CUSTOMER_ID
     assert restored.diagram_layout.nodes[CUSTOMER_ID].x == 10
+    assert [element.kind for element in restored.uml_model.elements[2:]] == [
+        "association",
+        "aggregation",
+        "composition",
+        "generalization",
+    ]
+    assert restored.uml_model.elements[2].source_multiplicity == UmlMultiplicity(lower=1, upper=1)
+    assert restored.uml_model.elements[4].target_multiplicity == UmlMultiplicity(lower=1, upper="*")
 
 
 def test_list_projects_orders_by_updated_at_descending() -> None:

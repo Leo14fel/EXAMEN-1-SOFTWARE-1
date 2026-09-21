@@ -121,3 +121,11 @@ CU-07 serializa execute, undo y redo por `projectId` con un lock process-local, 
 **Estado:** aceptada
 
 El frontend usa `/projects` para listar, crear, abrir y mutar. El store Pinia adjunta `baseRevision` en cada comando, Undo y Redo, y reemplaza el documento local con la respuesta autoritativa. Un conflicto de revision recarga el documento y limpia los indicadores de historial. El bridge `/editor/sessions` de CU-06 fue eliminado al completar esta migracion.
+
+## ADR-lite 019 - Admisibilidad de herencia en comandos
+
+**Estado:** aceptada
+
+Los diagnosticos UML permanecen separados de las invariantes estructurales y no bloquean comandos de forma general. Sin embargo, una generalization autoreferenciada o ciclica nunca es un estado admisible del editor. El executor construye el modelo candidato y consulta una funcion pura del dominio que reutiliza las reglas de validacion existentes para detectar exclusivamente `GENERALIZATION_SELF_REFERENCE` y `GENERALIZATION_CYCLE`; ante una de ellas rechaza el comando antes de modificar snapshots, revision o persistencia.
+
+Las autorrelaciones de association, aggregation y composition se mantienen permitidas: describen una relacion entre instancias de un mismo classifier y no implican que una instancia se contenga a si misma. Dependency, Realization, roles de extremo, navegabilidad y asociaciones n-arias siguen fuera del dominio actual.
