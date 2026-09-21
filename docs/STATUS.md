@@ -1,6 +1,6 @@
 # Estado real
 
-Fecha de actualizacion: 2026-09-18
+Fecha de actualizacion: 2026-09-21
 
 ## Completado
 
@@ -20,14 +20,14 @@ Fecha de actualizacion: 2026-09-18
 - [x] CU-04 terminado: diagnosticos de validacion semantica UML.
 - [x] CU-05 terminado: Command Bus encapsulado, snapshots y Undo/Redo.
 - [x] CU-06 terminado: canvas UML editable, inspector, relaciones, drag persistido, Undo/Redo y auto-layout.
+- [x] CU-07 terminado: proyectos persistentes, mutaciones con lock/CAS, editor conectado a `/projects` y recuperacion validada tras reiniciar FastAPI.
 
 ## CU activo
 
-- [ ] CU-07 NEXT / NOT_STARTED: persistir y recuperar proyectos.
+- [ ] Ninguno. El siguiente CU es CU-08: autenticacion, ownership y administracion de proyectos.
 
 ## No implementado todavia
 
-- [ ] Persistencia de proyectos.
 - [ ] Auth/ownership.
 - [ ] Realtime/presencia.
 - [ ] Generacion Spring Boot.
@@ -37,4 +37,4 @@ Fecha de actualizacion: 2026-09-18
 
 ## Proximo paso
 
-CU-00: DONE. CU-01: DONE. CU-02: DONE. CU-03: DONE. CU-04: DONE. CU-05: DONE. CU-06: DONE. CU-07: NEXT / NOT_STARTED.
+CU-00: DONE. CU-01: DONE. CU-02: DONE. CU-03: DONE. CU-04: DONE. CU-05: DONE. CU-06: DONE. CU-07: DONE.

@@ -62,6 +62,7 @@ Este roadmap deriva `/product.md` en una secuencia de implementacion. PUDS es la
 **Incremento usable:** usuarios autorizados guardan, abren y comparten proyectos; los cambios y la presencia se sincronizan, con operacion local/LAN base.
 
 ## CU-07 - Persistir y recuperar proyectos
+**Estado:** DONE.
 **Objetivo:** almacenar ProjectDocument con PostgreSQL y revision optimista.
 **Dependencias:** CU-01, CU-04..06.
 **Incluye:** SQLAlchemy, Alembic, migraciones, guardado, lectura y revision.

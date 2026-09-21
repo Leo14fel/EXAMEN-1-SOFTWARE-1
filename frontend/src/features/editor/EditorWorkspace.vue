@@ -8,6 +8,7 @@ import {
 } from './editor-elements'
 import type {
   DiagramNodeLayout,
+  ProjectSummary,
   UmlClass,
   UmlCommand,
   UmlRelationship,
@@ -18,14 +19,21 @@ import InspectorPanel from './InspectorPanel.vue'
 import RelationshipDialog from './RelationshipDialog.vue'
 
 const editorStore = useEditorStore()
-const { document, loading, error, sessionId, canUndo, canRedo } = storeToRefs(editorStore)
+const { document, loading, error, projectId, projects, canUndo, canRedo } = storeToRefs(editorStore)
 
 const selectedElementId = ref<string | null>(null)
 const relationshipDialogOpen = ref(false)
+const projectMenuOpen = ref(false)
+const createProjectDialogOpen = ref(false)
+const newProjectName = ref('')
 const batchBusy = ref(false)
 const canvasRef = ref<{ fitContent: () => void } | null>(null)
 
-const shortSessionId = computed(() => sessionId.value?.slice(0, 8) ?? 'sin sesión')
+const shortProjectId = computed(() => projectId.value?.slice(0, 8) ?? 'sin proyecto')
+const projectName = computed(() => {
+  const name = document.value?.metadata.name
+  return typeof name === 'string' && name.trim() ? name : 'Proyecto sin nombre'
+})
 const revision = computed(() => document.value?.revision ?? 0)
 const busy = computed(() => loading.value || batchBusy.value)
 const classes = computed(() =>
@@ -34,10 +42,31 @@ const classes = computed(() =>
   ) ?? [],
 )
 
-async function startEditor(): Promise<void> {
+async function loadProjects(): Promise<void> {
+  try {
+    await editorStore.loadProjects()
+  } catch {
+    // El store expone el mensaje en `error`.
+  }
+}
+
+async function openProject(project: ProjectSummary): Promise<void> {
   try {
     selectedElementId.value = null
-    await editorStore.startSession()
+    await editorStore.openProject(project.id)
+    projectMenuOpen.value = false
+  } catch {
+    // El store expone el mensaje en `error`.
+  }
+}
+
+async function createProject(): Promise<void> {
+  const name = newProjectName.value.trim() || 'Proyecto sin nombre'
+  try {
+    selectedElementId.value = null
+    await editorStore.createProject(name)
+    newProjectName.value = ''
+    createProjectDialogOpen.value = false
   } catch {
     // El store expone el mensaje en `error`.
   }
@@ -155,7 +184,7 @@ watch(
   ensureValidSelection,
 )
 
-onMounted(startEditor)
+onMounted(loadProjects)
 </script>
 
 <template>
@@ -165,12 +194,42 @@ onMounted(startEditor)
         <header class="editor-toolbar">
           <div>
             <div class="text-overline text-primary">EXAMEN SOFTWARE I</div>
-            <h1 class="text-h5 font-weight-bold">Editor UML</h1>
+            <h1 class="text-h5 font-weight-bold">{{ projectName }}</h1>
           </div>
 
           <div class="editor-toolbar__status">
+            <v-menu v-model="projectMenuOpen" :close-on-content-click="false">
+              <template #activator="{ props }">
+                <v-btn v-bind="props" size="small" variant="tonal" prepend-icon="mdi-folder-open-outline">
+                  Proyectos
+                </v-btn>
+              </template>
+              <v-card min-width="280" class="project-menu">
+                <v-list density="compact">
+                  <v-list-item
+                    v-for="project in projects"
+                    :key="project.id"
+                    :title="typeof project.metadata.name === 'string' ? project.metadata.name : 'Proyecto sin nombre'"
+                    :subtitle="`Revisión ${project.revision}`"
+                    prepend-icon="mdi-file-document-outline"
+                    @click="openProject(project)"
+                  />
+                  <v-list-item v-if="projects.length === 0" title="No hay proyectos guardados" />
+                </v-list>
+              </v-card>
+            </v-menu>
+            <v-btn
+              size="small"
+              color="primary"
+              variant="flat"
+              prepend-icon="mdi-plus"
+              :disabled="busy"
+              @click="createProjectDialogOpen = true"
+            >
+              Nuevo proyecto
+            </v-btn>
             <v-chip size="small" variant="tonal" color="secondary">
-              Sesión {{ shortSessionId }}
+              Proyecto {{ shortProjectId }}
             </v-chip>
             <v-chip size="small" variant="tonal" color="primary">
               Revisión {{ revision }}
@@ -192,7 +251,7 @@ onMounted(startEditor)
 
         <div v-if="loading && !document" class="editor-loading">
           <v-progress-circular indeterminate color="primary" size="48" />
-          <span class="text-body-2 text-medium-emphasis">Preparando sesión de editor...</span>
+          <span class="text-body-2 text-medium-emphasis">Cargando proyectos...</span>
         </div>
 
         <template v-else-if="document">
@@ -310,8 +369,32 @@ onMounted(startEditor)
         </template>
 
         <div v-else-if="!error" class="editor-loading">
-          <span class="text-body-2 text-medium-emphasis">Esperando documento...</span>
+          <span class="text-body-2 text-medium-emphasis">Abra o cree un proyecto para comenzar.</span>
+          <v-btn color="primary" variant="flat" prepend-icon="mdi-plus" @click="createProjectDialogOpen = true">
+            Crear proyecto
+          </v-btn>
         </div>
+
+        <v-dialog v-model="createProjectDialogOpen" max-width="420">
+          <v-card>
+            <v-card-title>Nuevo proyecto</v-card-title>
+            <v-card-text>
+              <v-text-field
+                v-model="newProjectName"
+                label="Nombre del proyecto"
+                autofocus
+                @keyup.enter="createProject"
+              />
+            </v-card-text>
+            <v-card-actions>
+              <v-spacer />
+              <v-btn variant="text" @click="createProjectDialogOpen = false">Cancelar</v-btn>
+              <v-btn color="primary" variant="flat" :disabled="busy" @click="createProject">
+                Crear
+              </v-btn>
+            </v-card-actions>
+          </v-card>
+        </v-dialog>
       </div>
     </v-main>
   </v-app>

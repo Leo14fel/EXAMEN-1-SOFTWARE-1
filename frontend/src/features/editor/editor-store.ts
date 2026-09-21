@@ -1,12 +1,14 @@
 import { defineStore } from 'pinia'
 import {
-  createEditorSession,
-  executeEditorCommand,
-  getEditorSession,
-  redoEditorSession,
-  undoEditorSession,
+  createProject as createPersistedProject,
+  EditorApiError,
+  executeProjectCommand,
+  getProject,
+  listProjects,
+  redoProject,
+  undoProject,
 } from './editor-api'
-import type { EditorSessionState, ProjectDocument, UmlCommand } from './types'
+import type { ProjectDocument, ProjectEditorState, ProjectSummary, UmlCommand } from './types'
 
 function messageFromError(error: unknown): string {
   return error instanceof Error ? error.message : 'Error inesperado del editor'
@@ -14,7 +16,8 @@ function messageFromError(error: unknown): string {
 
 export const useEditorStore = defineStore('editor', {
   state: () => ({
-    sessionId: null as string | null,
+    projectId: null as string | null,
+    projects: [] as ProjectSummary[],
     document: null as ProjectDocument | null,
     canUndo: false,
     canRedo: false,
@@ -22,22 +25,29 @@ export const useEditorStore = defineStore('editor', {
     error: null as string | null,
   }),
   actions: {
-    applySessionState(state: EditorSessionState) {
-      this.sessionId = state.sessionId
+    applyProjectState(state: ProjectEditorState) {
+      this.projectId = state.document.id
       this.document = structuredClone(state.document)
       this.canUndo = state.canUndo
       this.canRedo = state.canRedo
       this.error = null
     },
-    requireSessionId(): string {
-      if (!this.sessionId) throw new Error('No hay una sesión de editor activa')
-      return this.sessionId
+    applyProjectDocument(document: ProjectDocument) {
+      this.projectId = document.id
+      this.document = structuredClone(document)
+      this.canUndo = false
+      this.canRedo = false
+      this.error = null
     },
-    async startSession() {
+    requireDocument(): ProjectDocument {
+      if (!this.document || !this.projectId) throw new Error('No hay un proyecto abierto')
+      return this.document
+    },
+    async loadProjects() {
       this.loading = true
       this.error = null
       try {
-        this.applySessionState(await createEditorSession())
+        this.projects = structuredClone(await listProjects())
       } catch (error) {
         this.error = messageFromError(error)
         throw error
@@ -45,25 +55,48 @@ export const useEditorStore = defineStore('editor', {
         this.loading = false
       }
     },
-    async refreshSession() {
+    async createProject(name: string) {
       this.loading = true
       this.error = null
       try {
-        this.applySessionState(await getEditorSession(this.requireSessionId()))
+        this.applyProjectDocument(await createPersistedProject({ name }))
+        await this.loadProjects()
       } catch (error) {
         this.error = messageFromError(error)
         throw error
       } finally {
         this.loading = false
       }
+    },
+    async openProject(projectId: string) {
+      this.loading = true
+      this.error = null
+      try {
+        this.applyProjectDocument(await getProject(projectId))
+      } catch (error) {
+        this.error = messageFromError(error)
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+    async refreshProjectAfterConflict() {
+      const document = this.requireDocument()
+      this.applyProjectDocument(await getProject(document.id))
     },
     async execute(command: UmlCommand) {
       this.loading = true
       this.error = null
       try {
-        this.applySessionState(await executeEditorCommand(this.requireSessionId(), command))
+        const document = this.requireDocument()
+        this.applyProjectState(await executeProjectCommand(document.id, document.revision, command))
       } catch (error) {
-        this.error = messageFromError(error)
+        if (error instanceof EditorApiError && error.code === 'PROJECT_REVISION_CONFLICT') {
+          await this.refreshProjectAfterConflict()
+          this.error = 'El proyecto cambió en otra instancia y se recargó la versión actual.'
+        } else {
+          this.error = messageFromError(error)
+        }
         throw error
       } finally {
         this.loading = false
@@ -73,9 +106,15 @@ export const useEditorStore = defineStore('editor', {
       this.loading = true
       this.error = null
       try {
-        this.applySessionState(await undoEditorSession(this.requireSessionId()))
+        const document = this.requireDocument()
+        this.applyProjectState(await undoProject(document.id, document.revision))
       } catch (error) {
-        this.error = messageFromError(error)
+        if (error instanceof EditorApiError && error.code === 'PROJECT_REVISION_CONFLICT') {
+          await this.refreshProjectAfterConflict()
+          this.error = 'El proyecto cambió en otra instancia y se recargó la versión actual.'
+        } else {
+          this.error = messageFromError(error)
+        }
         throw error
       } finally {
         this.loading = false
@@ -85,9 +124,15 @@ export const useEditorStore = defineStore('editor', {
       this.loading = true
       this.error = null
       try {
-        this.applySessionState(await redoEditorSession(this.requireSessionId()))
+        const document = this.requireDocument()
+        this.applyProjectState(await redoProject(document.id, document.revision))
       } catch (error) {
-        this.error = messageFromError(error)
+        if (error instanceof EditorApiError && error.code === 'PROJECT_REVISION_CONFLICT') {
+          await this.refreshProjectAfterConflict()
+          this.error = 'El proyecto cambió en otra instancia y se recargó la versión actual.'
+        } else {
+          this.error = messageFromError(error)
+        }
         throw error
       } finally {
         this.loading = false

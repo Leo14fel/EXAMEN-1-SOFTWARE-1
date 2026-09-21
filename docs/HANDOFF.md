@@ -2,17 +2,17 @@
 
 ## Ultimo punto estable
 
-CU-00 a CU-06 estan cerrados. El stack instalado es Vue 3 + TypeScript + Vite + Vuetify y Python + FastAPI + SQLAlchemy + Alembic. La evidencia de CU-06 vive en `docs/puds/use-cases/CU-06-uml-canvas.md`.
+CU-00 a CU-07 estan cerrados. El stack instalado es Vue 3 + TypeScript + Vite + Vuetify y Python + FastAPI + SQLAlchemy + Alembic. La evidencia de CU-07 vive en `docs/puds/use-cases/CU-07-project-persistence.md`.
 
 ## Proximo paso exacto
 
-CU-07 es NEXT / NOT_STARTED: persistir y recuperar proyectos sin duplicar `ProjectDocument` ni `UmlCommandBus`.
+Iniciar CU-08: autenticacion, ownership y administracion de proyectos. CU-07 esta DONE, incluidos sus tres incrementos y la prueba manual humana final del editor persistente.
 
-## Restriccion temporal del editor CU-06
+## Editor persistente
 
 El frontend no ejecuta ni replica el Command Bus. `frontend/src/features/editor/` contiene contratos TypeScript, cliente HTTP, store Pinia y la proyeccion Vue Flow.
 
-FastAPI mantiene un `UmlCommandBus` temporal por `sessionId` bajo `/editor/sessions`. Este bridge es process-local, esta acotado a 64 sesiones con eviction LRU, serializa lecturas y mutaciones con un lock por sesion y se soporta solamente con un worker de FastAPI. Reiniciar el backend elimina las sesiones. CU-07 reemplazara esta limitacion con persistencia/recuperacion real.
+El frontend usa `projectId` y las rutas `/projects`. Las lecturas cargan `ProjectDocument` desde PostgreSQL; comandos, Undo y Redo usan el bus persistente. El historial de Undo/Redo sigue siendo efimero por proceso.
 
 ## Dominio actual
 
@@ -39,16 +39,15 @@ Desarrollo validado: PostgreSQL local de Windows en `localhost:5432`, base `exam
 
 El gate base sin infraestructura externa ejecuta `backend: pytest`, `python -m compileall app`, `ruff check .`, `pip check`; y `frontend: npm run typecheck`, `npm test`, `npm run build`. `alembic check` y `/health/db` son checks de integracion con PostgreSQL separados.
 
-## Evidencia CU-06 tras review del PR
+## Evidencia final CU-07
 
-- backend: 139 tests passed, 2 warnings externos;
-- frontend: 22 tests passed en 9 archivos;
-- typecheck/build/gate: OK;
-- prueba manual de canvas, drag, Undo/Redo, auto-layout y preservacion de borradores: OK.
+- backend: 150 passed, 2 warnings; `compileall`, Ruff y `pip check`: OK;
+- frontend: 27 tests passed; typecheck y build: OK;
+- `scripts/check.ps1`, `alembic check` y `GET /health/db`: OK;
+- prueba manual humana final: crear/abrir proyecto, editar clases, atributos y relaciones, layout, auto-layout, inspector, Undo/Redo y recuperacion del proyecto tras reiniciar FastAPI: OK.
 
 ## No hacer todavia
 
-- no implementar persistencia fuera de CU-07;
 - no implementar auth antes de CU-08;
 - no implementar realtime/presencia antes de sus CUs;
 - no implementar Flutter, AWS, IA, XMI o generadores antes del CU correspondiente;

@@ -1,5 +1,5 @@
 import { API_BASE_URL } from '../../services/api'
-import type { EditorSessionState, UmlCommand } from './types'
+import type { ProjectDocument, ProjectEditorState, ProjectSummary, UmlCommand } from './types'
 
 interface ApiErrorPayload {
   detail?: {
@@ -19,7 +19,7 @@ export class EditorApiError extends Error {
   }
 }
 
-async function editorRequest(path: string, init?: RequestInit): Promise<EditorSessionState> {
+async function editorRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE_URL}${path}`, init)
   if (!response.ok) {
     let payload: ApiErrorPayload | null = null
@@ -34,32 +34,49 @@ async function editorRequest(path: string, init?: RequestInit): Promise<EditorSe
       payload?.detail?.code,
     )
   }
-  return response.json() as Promise<EditorSessionState>
+  return response.json() as Promise<T>
 }
 
-export function createEditorSession(): Promise<EditorSessionState> {
-  return editorRequest('/editor/sessions', { method: 'POST' })
-}
-
-export function getEditorSession(sessionId: string): Promise<EditorSessionState> {
-  return editorRequest(`/editor/sessions/${sessionId}`)
-}
-
-export function executeEditorCommand(
-  sessionId: string,
-  command: UmlCommand,
-): Promise<EditorSessionState> {
-  return editorRequest(`/editor/sessions/${sessionId}/commands`, {
+export function createProject(metadata: Record<string, string>): Promise<ProjectDocument> {
+  return editorRequest('/projects', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(command),
+    body: JSON.stringify({ metadata }),
   })
 }
 
-export function undoEditorSession(sessionId: string): Promise<EditorSessionState> {
-  return editorRequest(`/editor/sessions/${sessionId}/undo`, { method: 'POST' })
+export function listProjects(): Promise<ProjectSummary[]> {
+  return editorRequest('/projects')
 }
 
-export function redoEditorSession(sessionId: string): Promise<EditorSessionState> {
-  return editorRequest(`/editor/sessions/${sessionId}/redo`, { method: 'POST' })
+export function getProject(projectId: string): Promise<ProjectDocument> {
+  return editorRequest(`/projects/${projectId}`)
+}
+
+export function executeProjectCommand(
+  projectId: string,
+  baseRevision: number,
+  command: UmlCommand,
+): Promise<ProjectEditorState> {
+  return editorRequest(`/projects/${projectId}/commands`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ baseRevision, command }),
+  })
+}
+
+export function undoProject(projectId: string, baseRevision: number): Promise<ProjectEditorState> {
+  return editorRequest(`/projects/${projectId}/undo`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ baseRevision }),
+  })
+}
+
+export function redoProject(projectId: string, baseRevision: number): Promise<ProjectEditorState> {
+  return editorRequest(`/projects/${projectId}/redo`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ baseRevision }),
+  })
 }

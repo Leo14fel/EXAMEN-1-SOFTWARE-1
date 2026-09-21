@@ -110,3 +110,23 @@ Cobertura agregada antes del merge:
 - preservacion de borradores dirty del inspector frente a revisiones externas;
 - resincronizacion del inspector cuando el borrador esta limpio;
 - asercion de layout jerarquico para una relacion dirigida, de modo que el fallback no pueda pasar la prueba principal de `d3-dag`.
+
+### CU-07 - Incremento 1 persistencia base
+
+Las pruebas unitarias de persistencia verifican el round-trip `ProjectDocument -> ProjectRecord -> ProjectDocument` con metadata, miembros, relacion, layout, UUIDs, revision y timestamps. Las pruebas API cubren creacion con owner temporal generado en backend, listado resumido, lectura validada y `PROJECT_NOT_FOUND`. No existe una base PostgreSQL de test aislada configurada, por lo que estas pruebas no ejecutan operaciones destructivas contra `examen_sw1`; `alembic upgrade head`, `alembic check` y el flujo HTTP real contra PostgreSQL son gates manuales de integracion.
+
+### CU-07 - Incremento 2 mutaciones persistentes
+
+Las pruebas API usan un repositorio transaccional en memoria para verificar execute, layout, relacion, Undo/Redo, revision y timestamps, comandos invalidos, proyecto inexistente, conflicto de revision, CAS sin fila actualizada, serializacion de dos requests mediante lock por proyecto, invalidacion de cache por conflicto/fallo de commit e historial vacio tras limpiar cache. La validacion manual PostgreSQL confirma command, Undo, Redo, reconstruccion de documento tras reinicio y Undo limitado a operaciones de la nueva instancia.
+
+### CU-07 - Incremento 3 editor persistente
+
+Las pruebas frontend cubren listado, creacion, apertura y cambio de proyectos, envio centralizado de `baseRevision`, respuesta autoritativa, Undo/Redo y recuperacion ante `PROJECT_REVISION_CONFLICT` sin confundir errores UML. Las pruebas existentes de canvas, relaciones, auto-layout e inspector dirty se mantienen. Al retirar `/editor/sessions`, se eliminan solamente sus pruebas exclusivas; la suite backend conserva dominio, persistencia, CAS y Undo/Redo.
+
+### Evidencia final CU-07
+
+- backend: `pytest` 150 passed, 2 warnings; `python -m compileall app`, `ruff check .` y `pip check`: OK;
+- frontend: `npm run typecheck`: OK; `npm test`: 27 passed; `npm run build`: OK;
+- global: `scripts/check.ps1`: OK;
+- PostgreSQL: `python -m alembic check` informa `No new upgrade operations detected.` y `GET /health/db`: 200 OK;
+- prueba manual humana final aprobada: crear y abrir proyecto, clases, atributos, relacion, movimiento/layout, auto-layout, inspector, Undo/Redo y recuperacion de clases, atributos, relaciones y layout despues de reiniciar FastAPI. Una nueva operacion posterior al reinicio y su Undo/Redo tambien fueron aprobados.

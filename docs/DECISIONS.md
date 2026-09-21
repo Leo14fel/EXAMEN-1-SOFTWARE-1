@@ -82,11 +82,11 @@ Undo/Redo usa snapshots completos inicialmente por simplicidad, correccion y fac
 
 ## ADR-lite 013 - Canvas Vue conectado al Command Bus por sesiones HTTP temporales
 
-**Estado:** aceptada
+**Estado:** reemplazada por ADR-lite 018
 
 CU-06 mantiene una unica implementacion autoritativa de mutaciones UML en Python. El frontend Vue no replica `UmlCommandBus`, atomicidad, historial ni validaciones estructurales. En su lugar, usa un adaptador HTTP de sesiones efimeras en memoria: Vue envia `UmlCommand` serializados, FastAPI los ejecuta mediante el bus canonico y devuelve `ProjectDocument`, `canUndo` y `canRedo`.
 
-La memoria del proceso no se considera persistencia y se pierde al reiniciar FastAPI. Esta decision evita adelantar CU-07 y permite reemplazar posteriormente el almacenamiento temporal sin redisenar el canvas. Pinia conserva una proyeccion del estado recibido y no es fuente semantica de verdad.
+La memoria del proceso no se considera persistencia y se pierde al reiniciar FastAPI. Esta decision fue temporal para CU-06 y se retiro en CU-07 Incremento 3.
 
 ## ADR-lite 014 - Vue Flow es proyeccion, no modelo de dominio
 
@@ -103,3 +103,21 @@ El grid usa CSS y los controles llaman acciones de viewport de `@vue-flow/core`;
 Vue Flow puede mover visualmente un node durante el drag, pero el cambio real se confirma solo con `SetNodeLayoutCommand` en `node-drag-stop`. Toolbox e inspector construyen comandos publicos y esperan el nuevo `ProjectDocument` del backend. No existe historial, validacion estructural ni cascada de borrado duplicada en TypeScript.
 
 El inspector conserva el `kind` de una relacion al actualizarla porque CU-05 rechaza `ELEMENT_KIND_MISMATCH`. Cambiar association/aggregation/composition/generalization requiere eliminar y volver a crear la relacion. Una clase con relaciones no se ofrece para borrado hasta retirar esas relaciones, coherente con el rechazo atomico del executor.
+
+## ADR-lite 016 - ProjectDocument persistido como columnas tipadas y JSONB separado
+
+**Estado:** aceptada
+
+CU-07 persiste un unico `ProjectDocument` por fila en `projects`. Los metadatos de proyecto, revision, propiedad estructural e identidad/timestamps usan columnas tipadas; `CanonicalUmlModel` y `DiagramLayout` se guardan como `JSONB` separados. Esto conserva la forma JSON-safe Pydantic, evita dos fuentes de verdad y no adelanta tablas relacionales para elementos UML. Las lecturas deben revalidar el payload mediante `ProjectDocument.model_validate(...)`.
+
+## ADR-lite 017 - Lock local y CAS para mutaciones persistentes
+
+**Estado:** aceptada
+
+CU-07 serializa execute, undo y redo por `projectId` con un lock process-local, porque `UmlCommandBus` mantiene estado mutable. PostgreSQL mantiene la autoridad entre procesos mediante `UPDATE ... WHERE id AND revision`. La cache process-local de buses solo conserva historial local y se invalida ante conflicto o error de persistencia; los snapshots no se guardan en PostgreSQL ni sobreviven un reinicio.
+
+## ADR-lite 018 - Editor Vue conectado a proyectos persistentes
+
+**Estado:** aceptada
+
+El frontend usa `/projects` para listar, crear, abrir y mutar. El store Pinia adjunta `baseRevision` en cada comando, Undo y Redo, y reemplaza el documento local con la respuesta autoritativa. Un conflicto de revision recarga el documento y limpia los indicadores de historial. El bridge `/editor/sessions` de CU-06 fue eliminado al completar esta migracion.

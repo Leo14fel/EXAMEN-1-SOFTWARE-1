@@ -85,23 +85,23 @@ Las entradas futuras manual, canvas, texto, voz, imagen, XMI, colaboracion y API
 
 No crear arquitectura para una capacidad futura hasta que un caso de uso aprobado la necesite.
 
-## Puente temporal del editor - CU-06 Incremento 1
+## Editor persistente - CU-07
 
 ```text
 Vue / Pinia (proyeccion cliente)
         |
-        | HTTP + UmlCommand JSON
+        | HTTP + UmlCommand JSON + baseRevision
         v
-FastAPI /editor/sessions
+FastAPI /projects
         |
         v
-UmlCommandBus canonico
+Lock por proyecto + UmlCommandBus canonico
         |
         v
-ProjectDocument
+ProjectDocument -> PostgreSQL
 ```
 
-CU-06 no duplica `UmlCommandBus` ni reglas UML en TypeScript. FastAPI mantiene sesiones efimeras en memoria para conectar el frontend al dominio ya implementado. Cada mutacion del canvas debera enviarse como comando al backend y el frontend reemplazara su proyeccion con el estado autoritativo recibido. Estas sesiones no usan PostgreSQL y desaparecen al reiniciar el backend; CU-07 incorporara persistencia. El `ownerId` temporal de CU-06 es estructural, no una autenticacion; CU-08 incorporara identidad real.
+El frontend lista, crea y abre proyectos persistidos. Pinia y Vue Flow reciben una proyeccion autoritativa; las mutaciones pasan por `/projects/{projectId}/commands`, Undo y Redo incluyen la revision actual. Ante conflicto de revision el frontend recarga el documento y descarta el historial visual. El `ownerId` temporal sigue siendo estructural hasta CU-08.
 
 ## Proyeccion Vue Flow - CU-06 Incremento 2
 
@@ -115,6 +115,8 @@ El canvas permite drag visual, pero solo persiste la posicion al finalizar el mo
 
 `d3-dag` calcula posiciones de auto-layout en frontend. Cada posicion calculada se envia despues como `SetNodeLayoutCommand`, por lo que el documento canonico sigue siendo la fuente de verdad. En CU-06 el auto-layout puede producir varias entradas de historial, una por clase, porque no existe un comando compuesto y no se introduce uno artificialmente en este CU.
 
-### Restriccion temporal de sesiones CU-06
+## Persistencia de proyectos - CU-07 Incremento 1
 
-`/editor/sessions` es un bridge efimero y process-local, no persistencia. Antes de CU-07 se soporta un solo worker FastAPI, con maximo 64 sesiones LRU y un lock por sesion para serializar lectura, execute, undo y redo. Las requests activas pinnean su sesion: el eviction solo retira sesiones inactivas; si toda la capacidad esta ocupada por requests activas, crear otra sesion responde `503 EDITOR_SESSION_CAPACITY_REACHED`. CU-07 debe sustituir este almacenamiento temporal por persistencia/recuperacion de proyectos.
+`projects` conserva una fila por `ProjectDocument`: identidad, owner estructural, metadata, revision y timestamps son columnas tipadas; `uml_model` y `diagram_layout` son columnas `JSONB` separadas. La persistencia no modela elementos UML en tablas relacionales ni reemplaza el documento como fuente canonica. Cada lectura reconstruye el documento mediante Pydantic antes de entregarlo.
+
+El Incremento 2 agrega mutaciones en `/projects/{projectId}/commands`, `/undo` y `/redo`. Cada una serializa acceso con un lock process-local por proyecto, lee la revision autoritativa de PostgreSQL y aplica CAS al persistir el documento producido por `UmlCommandBus`. La cache de buses solo mantiene historial local: se descarta ante conflicto o fallo de almacenamiento y no se reconstruye tras reinicio.

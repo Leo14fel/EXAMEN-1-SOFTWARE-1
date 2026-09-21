@@ -101,11 +101,19 @@ export interface ProjectDocument {
   diagramLayout: DiagramLayout
 }
 
-export interface EditorSessionState {
-  sessionId: UUID
+export interface ProjectEditorState {
   document: ProjectDocument
   canUndo: boolean
   canRedo: boolean
+}
+
+export interface ProjectSummary {
+  id: UUID
+  ownerId: UUID
+  metadata: Record<string, JsonValue>
+  revision: number
+  createdAt: string
+  updatedAt: string
 }
 
 export interface AddUmlElementCommand {
