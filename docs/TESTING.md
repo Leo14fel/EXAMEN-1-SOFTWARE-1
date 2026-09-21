@@ -118,3 +118,7 @@ Las pruebas unitarias de persistencia verifican el round-trip `ProjectDocument -
 ### CU-07 - Incremento 2 mutaciones persistentes
 
 Las pruebas API usan un repositorio transaccional en memoria para verificar execute, layout, relacion, Undo/Redo, revision y timestamps, comandos invalidos, proyecto inexistente, conflicto de revision, CAS sin fila actualizada, serializacion de dos requests mediante lock por proyecto, invalidacion de cache por conflicto/fallo de commit e historial vacio tras limpiar cache. La validacion manual PostgreSQL confirma command, Undo, Redo, reconstruccion de documento tras reinicio y Undo limitado a operaciones de la nueva instancia.
+
+### CU-07 - Incremento 3 editor persistente
+
+Las pruebas frontend cubren listado, creacion, apertura y cambio de proyectos, envio centralizado de `baseRevision`, respuesta autoritativa, Undo/Redo y recuperacion ante `PROJECT_REVISION_CONFLICT` sin confundir errores UML. Las pruebas existentes de canvas, relaciones, auto-layout e inspector dirty se mantienen. Al retirar `/editor/sessions`, se eliminan solamente sus pruebas exclusivas; la suite backend conserva dominio, persistencia, CAS y Undo/Redo.

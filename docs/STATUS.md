@@ -23,11 +23,10 @@ Fecha de actualizacion: 2026-09-18
 
 ## CU activo
 
-- [ ] CU-07 IN_PROGRESS: Incrementos 1 y 2 implementan persistencia, lectura y mutaciones con lock/CAS; Incremento 3 migrara la UI persistente.
+- [ ] CU-07 IN_PROGRESS: los tres incrementos estan implementados; falta prueba manual humana final del editor persistente.
 
 ## No implementado todavia
 
-- [ ] Persistencia de proyectos.
 - [ ] Auth/ownership.
 - [ ] Realtime/presencia.
 - [ ] Generacion Spring Boot.
@@ -37,4 +36,4 @@ Fecha de actualizacion: 2026-09-18
 
 ## Proximo paso
 
-CU-00: DONE. CU-01: DONE. CU-02: DONE. CU-03: DONE. CU-04: DONE. CU-05: DONE. CU-06: DONE. CU-07: NEXT / NOT_STARTED.
+CU-00: DONE. CU-01: DONE. CU-02: DONE. CU-03: DONE. CU-04: DONE. CU-05: DONE. CU-06: DONE. CU-07: IN_PROGRESS.

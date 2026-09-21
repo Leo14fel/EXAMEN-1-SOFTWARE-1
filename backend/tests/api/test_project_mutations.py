@@ -121,6 +121,14 @@ def execute(client: TestClient, revision: int, command: dict[str, object]) -> ob
     )
 
 
+def test_persistent_mutation_routes_are_registered() -> None:
+    paths = app.openapi()["paths"]
+
+    assert "post" in paths["/projects/{project_id}/commands"]
+    assert "post" in paths["/projects/{project_id}/undo"]
+    assert "post" in paths["/projects/{project_id}/redo"]
+
+
 def test_execute_persists_class_layout_and_relationship(
     client: TestClient, store: InMemoryProjectStore
 ) -> None:

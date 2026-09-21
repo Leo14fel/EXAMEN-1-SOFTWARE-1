@@ -46,7 +46,7 @@ CU-06 mantiene `/editor/sessions` como bridge temporal process-local. PostgreSQL
 
 ## 8. Plan aprobado
 
-CU-07 se ejecuta en tres incrementos. Este documento registra los Incrementos 1 y 2.
+CU-07 se ejecuta en tres incrementos. Los tres estan implementados; falta prueba manual humana final del editor persistente.
 
 ## 9. Incrementos
 
@@ -70,7 +70,9 @@ CU-07 se ejecuta en tres incrementos. Este documento registra los Incrementos 1 
 
 **Objetivo:** migrar el frontend a proyectos persistentes y retirar `/editor/sessions` solo despues de validar la UI.
 
-**Estado:** NEXT.
+**Implementado:** cliente HTTP, store Pinia y workspace migrados de sesiones a proyectos; listado/creacion/apertura de proyectos; `baseRevision` centralizada; recuperacion ante conflicto; retiro completo del bridge temporal.
+
+**Resultado real:** implementado y validado automaticamente y por API contra una instancia limpia. Pendiente prueba manual humana final de la UI.
 
 ## 10. Diseño y decisiones utilizadas
 
@@ -92,6 +94,10 @@ Las mutaciones adquieren un lock por `projectId`, recargan el documento persisti
 - `backend/migrations/env.py` importa el modelo ORM antes de evaluar `Base.metadata`.
 - Se implementaron `POST /projects/{projectId}/commands`, `/undo` y `/redo`.
 - Las mutaciones usan lock por proyecto, CAS por revision y cache efimera de buses.
+- El editor Vue lista, crea y abre proyectos persistentes sin Vue Router.
+- El store adjunta la revision actual en comandos, Undo y Redo, y reemplaza siempre la proyeccion con la respuesta autoritativa.
+- `PROJECT_REVISION_CONFLICT` recarga el documento y reinicia los indicadores de historial; errores UML no provocan recarga.
+- Se eliminaron `backend/app/api/editor.py`, sus pruebas y todas las referencias de frontend a sesiones temporales.
 
 ## 12. Archivos/componentes principales afectados
 
@@ -102,19 +108,23 @@ Las mutaciones adquieren un lock por `projectId`, recargan el documento persisti
 - `backend/tests/db/test_project_persistence.py`
 - `backend/tests/api/test_projects.py`
 - `backend/tests/api/test_project_mutations.py`
+- `frontend/src/features/editor/editor-api.ts`
+- `frontend/src/features/editor/editor-store.ts`
+- `frontend/src/features/editor/EditorWorkspace.vue`
+- Pruebas frontend de API, store y App.
 
 ## 13. Pruebas automáticas
 
 | Prueba/comando | Resultado | Evidencia/nota |
 |---|---|---|
-| `pytest` | 156 passed, 2 warnings externos | Incluye CAS, locks, cache, Undo/Redo y regresion de `/editor/sessions`. |
+| `pytest` | 149 passed, 2 warnings externos | El bridge temporal fue retirado; conserva dominio, persistencia, CAS y Undo/Redo. |
 | `ruff check .` | OK | Sin hallazgos. |
 | `alembic history --verbose` | OK | Revision `20260920_01` es head. |
 | `alembic current` antes | `20260920_01 (head)` | PostgreSQL local ya tenia aplicada la revision al iniciar la validacion. |
 | `alembic upgrade head` | OK, sin operaciones pendientes | No se aplicaron cambios adicionales. |
 | `alembic current` despues | `20260920_01 (head)` | Estado confirmado tras upgrade. |
 | `alembic check` | `No new upgrade operations detected.` | Metadata y esquema sincronizados. |
-| `scripts/check.ps1` | OK | Backend 156 passed, frontend 22 passed, typecheck y build verdes. |
+| `scripts/check.ps1` | OK | Backend 149 passed, frontend 27 passed, typecheck y build verdes. |
 
 Las pruebas de persistencia son unitarias y no destruyen ni modifican `examen_sw1`. El repositorio no tiene configurada una base PostgreSQL de test aislada; la integracion real se valido manualmente contra la base local sin operaciones destructivas.
 
@@ -143,6 +153,15 @@ Validacion real del Incremento 2 contra PostgreSQL local:
 - un nuevo comando creo `Order` en revision 4 con `canUndo: true`; Undo en revision 4 persistio revision 5 y conservo solo `Customer`;
 - un comando con `baseRevision: 4` respondio `409 PROJECT_REVISION_CONFLICT`; PostgreSQL conservo revision 5 y el contenido autoritativo.
 
+Validacion tecnica del Incremento 3 contra PostgreSQL local:
+
+- se creo Proyecto A `5798db34-a970-4fcb-b8a1-a5c67a57725a`;
+- cuatro comandos persistieron dos clases, una asociacion y layout de `Customer` en revision 4;
+- consulta PostgreSQL confirmo tres elementos y layout `{x: 120, y: 80, width: 220, height: 160}`;
+- una instancia FastAPI limpia recupero revision 4, las tres entidades y layout completo;
+- Undo tras reinicio respondio `409 UNDO_NOT_AVAILABLE` como corresponde al historial no durable;
+- un nuevo comando, Undo y Redo persistieron revisiones 5, 6 y 7 respectivamente.
+
 ## 15. Errores encontrados e iteraciones de corrección
 
 - La columna SQL `metadata` no puede usar ese mismo atributo Python porque es reservado por SQLAlchemy; se usa `project_metadata` sin cambiar el esquema de base de datos.
@@ -159,9 +178,8 @@ CU-07, arquitectura, decisiones, estado, handoff, contexto y testing.
 ## 18. Deuda técnica y riesgos restantes
 
 - No hay base PostgreSQL de test aislada configurada; no se ejecutan pruebas de integracion destructivas contra `examen_sw1`.
-- `/editor/sessions` permanece intencionalmente hasta el Incremento 3.
 - Undo/Redo no sobrevive al reinicio deliberadamente; solo se conserva dentro de la cache process-local de un bus activo.
-- El frontend aun usa `sessionId` y no consume las rutas persistentes hasta el Incremento 3.
+- Falta la prueba manual humana final de UI antes de cerrar CU-07.
 
 ## 19. Criterios de aceptación y evidencia
 
@@ -170,16 +188,18 @@ CU-07, arquitectura, decisiones, estado, handoff, contexto y testing.
 - [x] `POST /projects` genera `ownerId` en backend y crea un documento vacio valido.
 - [x] `GET /projects` devuelve resumen ordenado por actualizacion descendente.
 - [x] Proyecto inexistente responde `404 PROJECT_NOT_FOUND`.
-- [x] `/editor/sessions` conserva su suite existente verde.
 - [x] Migracion y endpoints integrados contra PostgreSQL local sin operaciones destructivas.
 - [x] Command, Undo y Redo persisten el documento resultado del `UmlCommandBus`.
 - [x] Lock local y CAS evitan que una mutacion obsoleta sobrescriba PostgreSQL.
 - [x] Conflicto o error de persistencia invalida el bus cacheado.
 - [x] Tras reinicio se recupera el documento, sin reconstruir historial Undo/Redo.
+- [x] Frontend usa proyectos persistentes, revision autoritativa y respuesta del backend.
+- [x] Bridge temporal de CU-06 retirado sin referencias residuales de codigo.
+- [ ] Prueba manual humana final: crear/abrir/editar proyecto desde UI y verificar recuperacion tras reinicio.
 
 ## 20. Estado final
 
-IN_PROGRESS. Incrementos 1 y 2 implementados y validados contra PostgreSQL local. Incremento 3 es el siguiente paso.
+IN_PROGRESS. Incrementos 1 y 2 DONE. Incremento 3 implementado; pendiente prueba manual humana final antes de cerrar CU-07.
 
 ## 21. Commit y push
 

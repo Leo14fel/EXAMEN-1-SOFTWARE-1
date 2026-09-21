@@ -6,13 +6,13 @@ CU-00 a CU-06 estan cerrados. El stack instalado es Vue 3 + TypeScript + Vite + 
 
 ## Proximo paso exacto
 
-CU-07 esta IN_PROGRESS. Los Incrementos 1 y 2 agregan `projects`, migracion Alembic, API de lectura y mutaciones persistentes con lock por proyecto, CAS por revision e invalidacion de buses. El Incremento 3 debe migrar el frontend y retirar el bridge temporal.
+CU-07 esta IN_PROGRESS. Los tres incrementos estan implementados: proyectos persistentes, mutaciones con lock/CAS y editor Vue conectado a `/projects`. Falta la prueba manual humana final antes de cerrar el CU.
 
-## Restriccion temporal del editor CU-06
+## Editor persistente
 
 El frontend no ejecuta ni replica el Command Bus. `frontend/src/features/editor/` contiene contratos TypeScript, cliente HTTP, store Pinia y la proyeccion Vue Flow.
 
-FastAPI mantiene un `UmlCommandBus` temporal por `sessionId` bajo `/editor/sessions`. Este bridge es process-local, esta acotado a 64 sesiones con eviction LRU, serializa lecturas y mutaciones con un lock por sesion y se soporta solamente con un worker de FastAPI. Reiniciar el backend elimina las sesiones. CU-07 reemplazara esta limitacion con persistencia/recuperacion real.
+El frontend usa `projectId` y las rutas `/projects`. Las lecturas cargan `ProjectDocument` desde PostgreSQL; comandos, Undo y Redo usan el bus persistente. El historial de Undo/Redo sigue siendo efimero por proceso.
 
 ## Dominio actual
 
