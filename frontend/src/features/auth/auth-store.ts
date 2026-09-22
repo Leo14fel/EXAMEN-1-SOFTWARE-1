@@ -19,7 +19,9 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
     localStorage.removeItem(TOKEN_STORAGE_KEY)
     setAccessToken(null)
-    useEditorStore().$reset()
+    const editor = useEditorStore()
+    editor.closeRealtime()
+    editor.$reset()
   }
 
   function applySession(session: AuthSession): void {

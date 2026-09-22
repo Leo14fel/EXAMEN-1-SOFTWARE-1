@@ -176,6 +176,17 @@ describe('editor store', () => {
     expect(store.document).toEqual(document)
   })
 
+  it('acepta únicamente una revisión realtime más nueva del proyecto abierto', () => {
+    const store = useEditorStore()
+    store.applyProjectDocument({ ...document, revision: 3 })
+
+    store.applyRealtimeDocument({ ...document, revision: 3, metadata: { name: 'Ignorado' } })
+    store.applyRealtimeDocument({ ...document, revision: 2, metadata: { name: 'Ignorado' } })
+    store.applyRealtimeDocument({ ...document, revision: 4, metadata: { name: 'Autoridad' } })
+
+    expect(store.document).toMatchObject({ revision: 4, metadata: { name: 'Autoridad' } })
+  })
+
   it('expone el rechazo autoritativo de un ciclo de generalization', async () => {
     vi.mocked(editorApi.getProject).mockResolvedValue(document)
     vi.mocked(editorApi.executeProjectCommand).mockRejectedValue(

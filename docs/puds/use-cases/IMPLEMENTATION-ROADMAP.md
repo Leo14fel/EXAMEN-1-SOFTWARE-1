@@ -80,6 +80,7 @@ Este roadmap deriva `/product.md` en una secuencia de implementacion. PUDS es la
 **Incluye:** ProjectMembership, ProjectInvitation, roles, estado y expiracion de invitaciones, token y autorizacion de acceso.
 
 ## CU-10 - Editar colaborativamente en tiempo real
+**Estado:** IMPLEMENTED - pendiente de prueba manual humana final.
 **Objetivo:** sincronizar operaciones con servidor autoritativo.
 **Dependencias:** CU-05, CU-07..09.
 **Incluye:** WebSockets, baseRevision, nueva revision, persistencia inmediata, broadcast, rechazo de operaciones obsoletas y recuperacion autoritativa.

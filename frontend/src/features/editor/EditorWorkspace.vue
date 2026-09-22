@@ -22,7 +22,7 @@ import { useAuthStore } from '../auth/auth-store'
 
 const editorStore = useEditorStore()
 const authStore = useAuthStore()
-const { document, loading, error, projectId, projects, canUndo, canRedo, effectiveRole, collaborators } = storeToRefs(editorStore)
+const { document, loading, error, projectId, projects, canUndo, canRedo, effectiveRole, collaborators, realtimeStatus } = storeToRefs(editorStore)
 
 const selectedElementId = ref<string | null>(null)
 const relationshipDialogOpen = ref(false)
@@ -280,6 +280,9 @@ onMounted(loadProjects)
             </v-chip>
             <v-chip v-if="effectiveRole" size="small" variant="tonal" :color="canEdit ? 'secondary' : 'warning'">
               {{ canEdit ? 'Editor' : 'Solo lectura' }}
+            </v-chip>
+            <v-chip v-if="document" size="small" variant="tonal" :color="realtimeStatus === 'connected' ? 'success' : 'default'">
+              {{ realtimeStatus === 'connected' ? 'En tiempo real' : 'Reconectando' }}
             </v-chip>
             <v-btn v-if="isOwner" size="small" variant="text" prepend-icon="mdi-account-group-outline" @click="openCollaborators">
               Colaboradores

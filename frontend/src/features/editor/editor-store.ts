@@ -12,6 +12,8 @@ import {
   undoProject,
   updateCollaborator,
 } from './editor-api'
+import { getAccessToken } from '../../services/api'
+import { ProjectRealtimeService, type RealtimeStatus } from './realtime-service'
 import type {
   ProjectCollaborator,
   ProjectDocument,
@@ -25,6 +27,8 @@ function messageFromError(error: unknown): string {
   return error instanceof Error ? error.message : 'Error inesperado del editor'
 }
 
+const realtime = new ProjectRealtimeService()
+
 export const useEditorStore = defineStore('editor', {
   state: () => ({
     projectId: null as string | null,
@@ -36,8 +40,23 @@ export const useEditorStore = defineStore('editor', {
     canRedo: false,
     loading: false,
     error: null as string | null,
+    realtimeStatus: 'disconnected' as RealtimeStatus,
   }),
   actions: {
+    startRealtime() {
+      const token = getAccessToken()
+      if (!this.projectId || !token) return
+      realtime.connect(
+        this.projectId,
+        token,
+        (status) => (this.realtimeStatus = status),
+        (document) => this.applyRealtimeDocument(document),
+      )
+    },
+    closeRealtime() {
+      realtime.close()
+      this.realtimeStatus = 'disconnected'
+    },
     applyProjectState(state: ProjectEditorState) {
       this.projectId = state.document.id
       this.document = structuredClone(state.document)
@@ -51,6 +70,10 @@ export const useEditorStore = defineStore('editor', {
       this.canUndo = false
       this.canRedo = false
       this.error = null
+    },
+    applyRealtimeDocument(document: ProjectDocument) {
+      if (this.projectId !== document.id || !this.document || document.revision <= this.document.revision) return
+      this.applyProjectDocument(document)
     },
     requireDocument(): ProjectDocument {
       if (!this.document || !this.projectId) throw new Error('No hay un proyecto abierto')
@@ -74,6 +97,7 @@ export const useEditorStore = defineStore('editor', {
       try {
         this.applyProjectDocument(await createPersistedProject({ name }))
         this.effectiveRole = 'EDITOR'
+        this.startRealtime()
         await this.loadProjects()
       } catch (error) {
         this.error = messageFromError(error)
@@ -83,11 +107,13 @@ export const useEditorStore = defineStore('editor', {
       }
     },
     async openProject(projectId: string) {
+      if (this.projectId !== projectId) this.closeRealtime()
       this.loading = true
       this.error = null
       try {
         this.applyProjectDocument(await getProject(projectId))
         this.effectiveRole = this.projects.find((project) => project.id === projectId)?.effectiveRole ?? null
+        this.startRealtime()
       } catch (error) {
         this.error = messageFromError(error)
         throw error

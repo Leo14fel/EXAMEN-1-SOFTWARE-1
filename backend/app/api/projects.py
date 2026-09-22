@@ -2,12 +2,13 @@ from datetime import datetime
 from threading import Lock
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect, status
 from pydantic import Field, JsonValue
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.api.auth import current_user_dependency
+from app.core.security import decode_access_token
 from app.db.dependencies import get_db_session
 from app.db.memberships import (
     ProjectMembershipRecord,
@@ -26,6 +27,7 @@ from app.db.users import UserRecord, get_user_by_email, get_user_by_id
 from app.domain.uml.command_bus import UmlCommandBus
 from app.domain.uml.commands import UmlCommand, UmlCommandExecutionError
 from app.domain.uml.models import DomainModel, ProjectDocument
+from app.realtime.projects import project_connections
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 database_session = Depends(get_db_session)
@@ -222,6 +224,10 @@ def _mutate_project(
         return _state(bus)
 
 
+async def _broadcast_project_updated(project_id: UUID, state: ProjectEditorState) -> None:
+    await project_connections.broadcast_project_updated(project_id, state.document)
+
+
 def _summary(record: ProjectRecord, user_id: UUID, session: Session) -> ProjectSummary:
     role = (
         ProjectRole.EDITOR
@@ -363,7 +369,7 @@ def update_collaborator(
 @router.delete(
     "/{project_id}/collaborators/{collaborator_id}", status_code=status.HTTP_204_NO_CONTENT
 )
-def remove_collaborator(
+async def remove_collaborator(
     project_id: UUID,
     collaborator_id: UUID,
     user: UserRecord = current_user_dependency,
@@ -375,35 +381,73 @@ def remove_collaborator(
         raise _not_found()
     session.delete(membership)
     session.commit()
+    await project_connections.disconnect_user(project_id, collaborator_id)
 
 
 @router.post("/{project_id}/commands", response_model=ProjectEditorState)
-def execute_project_command(
+async def execute_project_command(
     project_id: UUID,
     request: ExecuteProjectCommandRequest,
     user: UserRecord = current_user_dependency,
     session: Session = database_session,
 ) -> ProjectEditorState:
-    return _mutate_project(
+    state = _mutate_project(
         project_id, request.base_revision, session, "execute", user, request.command
     )
+    await _broadcast_project_updated(project_id, state)
+    return state
 
 
 @router.post("/{project_id}/undo", response_model=ProjectEditorState)
-def undo_project(
+async def undo_project(
     project_id: UUID,
     request: ProjectRevisionRequest,
     user: UserRecord = current_user_dependency,
     session: Session = database_session,
 ) -> ProjectEditorState:
-    return _mutate_project(project_id, request.base_revision, session, "undo", user)
+    state = _mutate_project(project_id, request.base_revision, session, "undo", user)
+    await _broadcast_project_updated(project_id, state)
+    return state
 
 
 @router.post("/{project_id}/redo", response_model=ProjectEditorState)
-def redo_project(
+async def redo_project(
     project_id: UUID,
     request: ProjectRevisionRequest,
     user: UserRecord = current_user_dependency,
     session: Session = database_session,
 ) -> ProjectEditorState:
-    return _mutate_project(project_id, request.base_revision, session, "redo", user)
+    state = _mutate_project(project_id, request.base_revision, session, "redo", user)
+    await _broadcast_project_updated(project_id, state)
+    return state
+
+
+@router.websocket("/{project_id}/realtime")
+async def project_realtime(
+    project_id: UUID, websocket: WebSocket, token: str | None = None
+) -> None:
+    if token is None:
+        await websocket.close(code=1008)
+        return
+    session_dependency = get_db_session()
+    session = next(session_dependency)
+    try:
+        user = get_user_by_id(session, decode_access_token(token))
+        if user is None:
+            await websocket.close(code=1008)
+            return
+        _project_access(session, project_id, user)
+    except HTTPException:
+        await websocket.close(code=1008)
+        return
+    finally:
+        session_dependency.close()
+
+    await project_connections.connect(project_id, user.id, websocket)
+    try:
+        while True:
+            await websocket.receive()
+    except WebSocketDisconnect:
+        pass
+    finally:
+        await project_connections.disconnect(project_id, user.id, websocket)

@@ -10,7 +10,7 @@ La herramienta CASE es colaborativa y offline-first para modelado UML de clases.
 
 ## Estado actual
 
-CU-00 a CU-09 estan implementados. CU-08 protege `/projects` con JWT, usa `current_user.id` para proyectos nuevos y conserva `ProjectDocument`, CAS y Command Bus sin cambios semanticos. CU-09 agrega memberships `EDITOR`/`VIEWER`: el owner se deriva de `projects.owner_id`, editores mutan, viewers solo leen y el owner administra colaboradores. CU-07 persiste `ProjectDocument`, expone lectura y mutaciones con lock/CAS y conecta el editor Vue a `/projects`.
+CU-00 a CU-10 estan implementados. CU-08 protege `/projects` con JWT, usa `current_user.id` para proyectos nuevos y conserva `ProjectDocument`, CAS y Command Bus sin cambios semanticos. CU-09 agrega memberships `EDITOR`/`VIEWER`: el owner se deriva de `projects.owner_id`, editores mutan, viewers solo leen y el owner administra colaboradores. CU-10 añade `WebSocket /projects/{project_id}/realtime?token=<JWT>`: conexiones centralizadas por proyecto, documento autoritativo tras persistencia REST y desconexión de una membresía revocada. CU-07 persiste `ProjectDocument`, expone lectura y mutaciones con lock/CAS y conecta el editor Vue a `/projects`.
 
 El bridge HTTP temporal de CU-06 fue retirado en CU-07. Los proyectos y mutaciones usan `/projects`; PostgreSQL es la fuente persistente y el cache process-local del bus conserva solo el historial de Undo/Redo de la instancia actual. Tras reiniciar, el documento se recupera desde PostgreSQL y las operaciones nuevas generan historial para la nueva instancia.
 

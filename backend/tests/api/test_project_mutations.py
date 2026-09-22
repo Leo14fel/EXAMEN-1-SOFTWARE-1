@@ -373,6 +373,25 @@ def test_cache_is_invalidated_after_persistence_error_and_rebuilt_from_store(
     assert store.document.revision == 1
 
 
+def test_broadcast_happens_only_after_a_command_is_persisted(
+    client: TestClient, store: InMemoryProjectStore, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    broadcasts: list[int] = []
+
+    async def record_broadcast(_: UUID, state: object) -> None:
+        broadcasts.append(state.document.revision)  # type: ignore[attr-defined]
+
+    monkeypatch.setattr(projects, '_broadcast_project_updated', record_broadcast)
+    store.fail_commit = True
+
+    assert execute(client, 0, add_class_payload(FIRST_CLASS_ID, 'Customer')).status_code == 503
+    assert broadcasts == []
+
+    store.fail_commit = False
+    assert execute(client, 0, add_class_payload(FIRST_CLASS_ID, 'Customer')).status_code == 200
+    assert broadcasts == [1]
+
+
 def test_history_is_empty_after_cache_restart_and_undo_only_affects_new_commands(
     client: TestClient, store: InMemoryProjectStore
 ) -> None:
