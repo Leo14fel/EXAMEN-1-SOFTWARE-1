@@ -76,6 +76,12 @@ Las pruebas cubren registro normalizado, email duplicado, hash Argon2, login cor
 
 Evidencia final CU-08: backend `pytest` 171 passed (2 warnings externos), `compileall`, Ruff y `pip check`: OK; frontend typecheck, 45 pruebas y build: OK; `scripts/check.ps1`: OK; `alembic upgrade head` aplicado y `alembic check`: sin operaciones nuevas.
 
+### CU-09 - colaboradores
+
+Las pruebas backend verifican que un editor puede leer y ejecutar la ruta de mutacion, un viewer queda bloqueado con `PROJECT_ACCESS_FORBIDDEN`, y solo el owner lista y cambia colaboradores. La regresion CU-08 conserva el ocultamiento `404` para usuarios sin membership. Frontend conserva sus pruebas de API/store y valida los tipos que incluyen `effectiveRole`.
+
+Evidencia final CU-09: backend `pytest` 173 passed (2 warnings externos), Ruff y compileall: OK; frontend typecheck, 45 pruebas y build: OK; `alembic upgrade head` aplico `20260922_03` y `alembic check` no detecta operaciones nuevas.
+
 ### CU-06 - Puente temporal del editor
 
 El Incremento 1 agrega pruebas backend para crear/consultar sesiones en memoria, ejecutar un `UmlCommand` real y reutilizar Undo/Redo de CU-05. Tambien comprueba errores HTTP estables para sesion inexistente y comandos rechazados. En frontend, Vitest cubre el cliente HTTP y el store Pinia para confirmar que envia comandos al backend y reemplaza su proyeccion con la respuesta, sin aplicar mutaciones UML locales.

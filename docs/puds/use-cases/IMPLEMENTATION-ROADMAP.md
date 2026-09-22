@@ -74,6 +74,7 @@ Este roadmap deriva `/product.md` en una secuencia de implementacion. PUDS es la
 **Incluye:** registro/login, PyJWT, Argon2/pwdlib, listado, creacion, apertura, ownerId y autorizacion.
 
 ## CU-09 - Administrar acceso de colaboradores
+**Estado:** IMPLEMENTED - pendiente de prueba manual humana final.
 **Objetivo:** autorizar colaboradores de un proyecto antes de permitir colaboracion realtime.
 **Dependencias:** CU-08.
 **Incluye:** ProjectMembership, ProjectInvitation, roles, estado y expiracion de invitaciones, token y autorizacion de acceso.

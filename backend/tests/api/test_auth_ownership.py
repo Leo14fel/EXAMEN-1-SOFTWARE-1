@@ -127,6 +127,7 @@ def test_projects_are_protected_and_hidden_from_other_users(
     monkeypatch.setattr(
         projects, "list_projects", lambda _, owner_id: [] if owner_id == OTHER_ID else []
     )
+    monkeypatch.setattr(projects, "get_membership", lambda *_: None)
     app.dependency_overrides[auth.get_current_user] = lambda: user(OTHER_ID, "other@example.com")
 
     with TestClient(app) as client:

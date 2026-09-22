@@ -1,14 +1,25 @@
 import { defineStore } from 'pinia'
 import {
+  addCollaborator,
   createProject as createPersistedProject,
   EditorApiError,
   executeProjectCommand,
   getProject,
   listProjects,
+  listCollaborators,
   redoProject,
+  removeCollaborator,
   undoProject,
+  updateCollaborator,
 } from './editor-api'
-import type { ProjectDocument, ProjectEditorState, ProjectSummary, UmlCommand } from './types'
+import type {
+  ProjectCollaborator,
+  ProjectDocument,
+  ProjectEditorState,
+  ProjectRole,
+  ProjectSummary,
+  UmlCommand,
+} from './types'
 
 function messageFromError(error: unknown): string {
   return error instanceof Error ? error.message : 'Error inesperado del editor'
@@ -18,6 +29,8 @@ export const useEditorStore = defineStore('editor', {
   state: () => ({
     projectId: null as string | null,
     projects: [] as ProjectSummary[],
+    collaborators: [] as ProjectCollaborator[],
+    effectiveRole: null as ProjectRole | null,
     document: null as ProjectDocument | null,
     canUndo: false,
     canRedo: false,
@@ -60,6 +73,7 @@ export const useEditorStore = defineStore('editor', {
       this.error = null
       try {
         this.applyProjectDocument(await createPersistedProject({ name }))
+        this.effectiveRole = 'EDITOR'
         await this.loadProjects()
       } catch (error) {
         this.error = messageFromError(error)
@@ -73,6 +87,7 @@ export const useEditorStore = defineStore('editor', {
       this.error = null
       try {
         this.applyProjectDocument(await getProject(projectId))
+        this.effectiveRole = this.projects.find((project) => project.id === projectId)?.effectiveRole ?? null
       } catch (error) {
         this.error = messageFromError(error)
         throw error
@@ -83,6 +98,26 @@ export const useEditorStore = defineStore('editor', {
     async refreshProjectAfterConflict() {
       const document = this.requireDocument()
       this.applyProjectDocument(await getProject(document.id))
+    },
+    async loadCollaborators() {
+      const document = this.requireDocument()
+      this.collaborators = structuredClone(await listCollaborators(document.id))
+    },
+    async addCollaborator(email: string, role: ProjectRole) {
+      const document = this.requireDocument()
+      const collaborator = await addCollaborator(document.id, email, role)
+      this.collaborators.push(collaborator)
+    },
+    async updateCollaborator(collaboratorId: string, role: ProjectRole) {
+      const document = this.requireDocument()
+      const collaborator = await updateCollaborator(document.id, collaboratorId, role)
+      const index = this.collaborators.findIndex((item) => item.userId === collaboratorId)
+      if (index >= 0) this.collaborators.splice(index, 1, collaborator)
+    },
+    async removeCollaborator(collaboratorId: string) {
+      const document = this.requireDocument()
+      await removeCollaborator(document.id, collaboratorId)
+      this.collaborators = this.collaborators.filter((item) => item.userId !== collaboratorId)
     },
     async execute(command: UmlCommand) {
       this.loading = true

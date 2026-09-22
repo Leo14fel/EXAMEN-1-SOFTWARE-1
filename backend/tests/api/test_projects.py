@@ -120,6 +120,7 @@ def test_list_projects_returns_summaries_in_repository_order(
             "revision": 3,
             "createdAt": "2026-09-20T12:00:00Z",
             "updatedAt": "2026-09-20T12:01:00Z",
+            "effectiveRole": "EDITOR",
         },
         {
             "id": "33333333-3333-3333-3333-333333333333",
@@ -128,6 +129,7 @@ def test_list_projects_returns_summaries_in_repository_order(
             "revision": 1,
             "createdAt": "2026-09-20T12:00:00Z",
             "updatedAt": "2026-09-20T12:00:00Z",
+            "effectiveRole": "EDITOR",
         },
     ]
 

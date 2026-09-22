@@ -39,6 +39,7 @@ const summary: ProjectSummary = {
   revision: document.revision,
   createdAt: document.createdAt,
   updatedAt: document.updatedAt,
+  effectiveRole: 'EDITOR',
 }
 
 function mountApp() {

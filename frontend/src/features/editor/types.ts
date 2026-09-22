@@ -1,4 +1,5 @@
 export type UUID = string
+export type ProjectRole = 'EDITOR' | 'VIEWER'
 export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue }
 export type UmlVisibility = 'public' | 'private' | 'protected' | 'package'
 
@@ -114,6 +115,13 @@ export interface ProjectSummary {
   revision: number
   createdAt: string
   updatedAt: string
+  effectiveRole: ProjectRole
+}
+
+export interface ProjectCollaborator {
+  userId: UUID
+  email: string
+  role: ProjectRole
 }
 
 export interface AddUmlElementCommand {
