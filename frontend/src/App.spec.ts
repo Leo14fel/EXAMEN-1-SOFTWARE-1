@@ -2,6 +2,7 @@ import { createPinia } from 'pinia'
 import { flushPromises, mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App.vue'
+import * as authApi from './features/auth/auth-api'
 import * as editorApi from './features/editor/editor-api'
 import type { ProjectDocument, ProjectSummary } from './features/editor/types'
 
@@ -12,6 +13,12 @@ vi.mock('./features/editor/editor-api', () => ({
   executeProjectCommand: vi.fn(),
   undoProject: vi.fn(),
   redoProject: vi.fn(),
+}))
+
+vi.mock('./features/auth/auth-api', () => ({
+  getCurrentUser: vi.fn(),
+  login: vi.fn(),
+  register: vi.fn(),
 }))
 
 const document: ProjectDocument = {
@@ -52,6 +59,11 @@ function mountApp() {
 describe('App', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    localStorage.setItem('examen-sw1.access-token', 'test-token')
+    vi.mocked(authApi.getCurrentUser).mockResolvedValue({
+      id: document.ownerId,
+      email: 'owner@example.com',
+    })
     vi.mocked(editorApi.listProjects).mockResolvedValue([summary])
   })
 

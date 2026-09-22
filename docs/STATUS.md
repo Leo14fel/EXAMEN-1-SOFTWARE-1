@@ -21,11 +21,12 @@ Fecha de actualizacion: 2026-09-21
 - [x] CU-05 terminado: Command Bus encapsulado, snapshots y Undo/Redo.
 - [x] CU-06 terminado: canvas UML editable, inspector, relaciones, drag persistido, Undo/Redo y auto-layout.
 - [x] CU-07 terminado: proyectos persistentes, mutaciones con lock/CAS, editor conectado a `/projects` y recuperacion validada tras reiniciar FastAPI.
+- [x] CU-08 implementado: registro/login/JWT, usuario actual, proyectos protegidos y ownership real para proyectos nuevos; pendiente prueba manual humana final.
 - [x] UML Editor Completeness: relaciones visuales UML, multiplicidades por extremo y self-loops renderizados sin alterar el modelo canonico.
 
 ## CU activo
 
-- [ ] Ninguno. El siguiente CU es CU-08: autenticacion, ownership y administracion de proyectos.
+- [ ] Ninguno. El siguiente CU es CU-09: acceso de colaboradores.
 
 ## No implementado todavia
 

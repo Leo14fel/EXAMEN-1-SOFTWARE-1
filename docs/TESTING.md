@@ -70,6 +70,12 @@ El producto define Cypress, pero los escenarios E2E reales deben añadirse cuand
 
 Cada CU debe añadir o actualizar pruebas que correspondan a sus criterios de aceptación.
 
+### CU-08 - autenticacion y ownership
+
+Las pruebas cubren registro normalizado, email duplicado, hash Argon2, login correcto/incorrecto, JWT invalido/expirado, `/auth/me`, proteccion Bearer y aislamiento de proyectos entre dos usuarios para listado, lectura, comandos, Undo y Redo. Frontend cubre formulario login/registro, bootstrap, token persistido, header Authorization, logout y limpieza tras 401.
+
+Evidencia final CU-08: backend `pytest` 171 passed (2 warnings externos), `compileall`, Ruff y `pip check`: OK; frontend typecheck, 45 pruebas y build: OK; `scripts/check.ps1`: OK; `alembic upgrade head` aplicado y `alembic check`: sin operaciones nuevas.
+
 ### CU-06 - Puente temporal del editor
 
 El Incremento 1 agrega pruebas backend para crear/consultar sesiones en memoria, ejecutar un `UmlCommand` real y reutilizar Undo/Redo de CU-05. Tambien comprueba errores HTTP estables para sesion inexistente y comandos rechazados. En frontend, Vitest cubre el cliente HTTP y el store Pinia para confirmar que envia comandos al backend y reemplaza su proyeccion con la respuesta, sin aplicar mutaciones UML locales.

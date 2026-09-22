@@ -128,3 +128,7 @@ El auto-layout excluye self-loops solo del grafo de `d3-dag`, porque no aportan 
 `projects` conserva una fila por `ProjectDocument`: identidad, owner estructural, metadata, revision y timestamps son columnas tipadas; `uml_model` y `diagram_layout` son columnas `JSONB` separadas. La persistencia no modela elementos UML en tablas relacionales ni reemplaza el documento como fuente canonica. Cada lectura reconstruye el documento mediante Pydantic antes de entregarlo.
 
 El Incremento 2 agrega mutaciones en `/projects/{projectId}/commands`, `/undo` y `/redo`. Cada una serializa acceso con un lock process-local por proyecto, lee la revision autoritativa de PostgreSQL y aplica CAS al persistir el documento producido por `UmlCommandBus`. La cache de buses solo mantiene historial local: se descarta ante conflicto o fallo de almacenamiento y no se reconstruye tras reinicio.
+
+## Autenticacion y ownership - CU-08
+
+`users` almacena identidad minima y hash Argon2. Bearer JWT se valida antes de `/projects`; listas se filtran por `owner_id` y recursos ajenos devuelven 404. El dominio UML, locks y CAS no cambian. La migracion agrega usuarios e indice sin FK sobre `projects.owner_id`, preservando UUID legacy no verificables.

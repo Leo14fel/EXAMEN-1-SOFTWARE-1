@@ -1,12 +1,13 @@
 from datetime import datetime
 from threading import Lock
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import Field, JsonValue
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from app.api.auth import current_user_dependency
 from app.db.dependencies import get_db_session
 from app.db.projects import (
     ProjectRecord,
@@ -15,6 +16,7 @@ from app.db.projects import (
     list_projects,
     update_project_if_revision,
 )
+from app.db.users import UserRecord
 from app.domain.uml.command_bus import UmlCommandBus
 from app.domain.uml.commands import UmlCommand, UmlCommandExecutionError
 from app.domain.uml.models import DomainModel, ProjectDocument
@@ -113,11 +115,14 @@ def _mutate_project(
     base_revision: int,
     session: Session,
     action: str,
+    user: UserRecord,
     command: UmlCommand | None = None,
 ) -> ProjectEditorState:
     with _project_lock(project_id):
         document = get_project(session, project_id)
         if document is None:
+            raise _not_found()
+        if document.owner_id != user.id:
             raise _not_found()
         if document.revision != base_revision:
             _invalidate_project_bus(project_id)
@@ -174,9 +179,10 @@ def _summary(record: ProjectRecord) -> ProjectSummary:
 @router.post("", response_model=ProjectDocument, status_code=status.HTTP_201_CREATED)
 def create_persisted_project(
     request: CreateProjectRequest,
+    user: UserRecord = current_user_dependency,
     session: Session = database_session,
 ) -> ProjectDocument:
-    document = ProjectDocument(ownerId=uuid4(), metadata=request.metadata)
+    document = ProjectDocument(ownerId=user.id, metadata=request.metadata)
     try:
         return create_project(session, document)
     except SQLAlchemyError as error:
@@ -191,16 +197,23 @@ def create_persisted_project(
 
 
 @router.get("", response_model=list[ProjectSummary])
-def list_persisted_projects(session: Session = database_session) -> list[ProjectSummary]:
-    return [_summary(record) for record in list_projects(session)]
+def list_persisted_projects(
+    user: UserRecord = current_user_dependency,
+    session: Session = database_session,
+) -> list[ProjectSummary]:
+    return [_summary(record) for record in list_projects(session, user.id)]
 
 
 @router.get("/{project_id}", response_model=ProjectDocument)
 def get_persisted_project(
-    project_id: UUID, session: Session = database_session
+    project_id: UUID,
+    user: UserRecord = current_user_dependency,
+    session: Session = database_session,
 ) -> ProjectDocument:
     document = get_project(session, project_id)
     if document is None:
+        raise _not_found()
+    if document.owner_id != user.id:
         raise _not_found()
     return document
 
@@ -209,24 +222,29 @@ def get_persisted_project(
 def execute_project_command(
     project_id: UUID,
     request: ExecuteProjectCommandRequest,
+    user: UserRecord = current_user_dependency,
     session: Session = database_session,
 ) -> ProjectEditorState:
-    return _mutate_project(project_id, request.base_revision, session, "execute", request.command)
+    return _mutate_project(
+        project_id, request.base_revision, session, "execute", user, request.command
+    )
 
 
 @router.post("/{project_id}/undo", response_model=ProjectEditorState)
 def undo_project(
     project_id: UUID,
     request: ProjectRevisionRequest,
+    user: UserRecord = current_user_dependency,
     session: Session = database_session,
 ) -> ProjectEditorState:
-    return _mutate_project(project_id, request.base_revision, session, "undo")
+    return _mutate_project(project_id, request.base_revision, session, "undo", user)
 
 
 @router.post("/{project_id}/redo", response_model=ProjectEditorState)
 def redo_project(
     project_id: UUID,
     request: ProjectRevisionRequest,
+    user: UserRecord = current_user_dependency,
     session: Session = database_session,
 ) -> ProjectEditorState:
-    return _mutate_project(project_id, request.base_revision, session, "redo")
+    return _mutate_project(project_id, request.base_revision, session, "redo", user)

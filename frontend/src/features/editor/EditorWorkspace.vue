@@ -17,8 +17,10 @@ import { computeAutoLayout } from './canvas/auto-layout'
 import UmlCanvas from './canvas/UmlCanvas.vue'
 import InspectorPanel from './InspectorPanel.vue'
 import RelationshipDialog from './RelationshipDialog.vue'
+import { useAuthStore } from '../auth/auth-store'
 
 const editorStore = useEditorStore()
+const authStore = useAuthStore()
 const { document, loading, error, projectId, projects, canUndo, canRedo } = storeToRefs(editorStore)
 
 const selectedElementId = ref<string | null>(null)
@@ -234,6 +236,9 @@ onMounted(loadProjects)
             <v-chip size="small" variant="tonal" color="primary">
               Revisión {{ revision }}
             </v-chip>
+            <v-btn size="small" variant="text" prepend-icon="mdi-logout" @click="authStore.logout">
+              Salir
+            </v-btn>
           </div>
         </header>
 

@@ -8,6 +8,9 @@ class Settings(BaseSettings):
     app_env: str = "development"
     frontend_origin: str = "http://localhost:5173"
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/examen_sw1"
+    jwt_secret_key: str
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_minutes: int = 480
 
 
 settings = Settings()

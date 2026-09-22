@@ -14,7 +14,7 @@ Este roadmap deriva `/product.md` en una secuencia de implementacion. PUDS es la
 **Incremento usable:** una herramienta local mantiene un documento UML en memoria, modela clases y relaciones, valida, modifica por Command Bus y lo proyecta en un canvas.
 
 ## CU-00 - Fundar el proyecto ejecutable
-**Estado:** DONE.
+**Estado:** IMPLEMENTED - pendiente de prueba manual humana final.
 **Objetivo:** crear el monorepo y demostrar frontend <-> backend.
 **Dependencias:** ninguna.
 
@@ -68,6 +68,7 @@ Este roadmap deriva `/product.md` en una secuencia de implementacion. PUDS es la
 **Incluye:** SQLAlchemy, Alembic, migraciones, guardado, lectura y revision.
 
 ## CU-08 - Autenticacion, ownership y administracion de proyectos
+**Estado:** DONE.
 **Objetivo:** autenticar usuarios y administrar sus propios proyectos.
 **Dependencias:** CU-07.
 **Incluye:** registro/login, PyJWT, Argon2/pwdlib, listado, creacion, apertura, ownerId y autorizacion.

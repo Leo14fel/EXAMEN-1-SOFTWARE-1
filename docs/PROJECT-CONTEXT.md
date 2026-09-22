@@ -10,7 +10,7 @@ La herramienta CASE es colaborativa y offline-first para modelado UML de clases.
 
 ## Estado actual
 
-CU-00 a CU-07 estan DONE. CU-07 persiste `ProjectDocument`, expone lectura y mutaciones con lock/CAS y conecta el editor Vue a `/projects`; la prueba manual humana final confirmo la recuperacion de contenido y layout tras reiniciar FastAPI. CU-05 establecio `UmlCommand -> UmlCommandBus -> execute_uml_command -> ProjectDocument` como unica ruta de mutacion. CU-06 agrego el canvas UML editable, inspector, relaciones, drag persistido, Undo/Redo y auto-layout sin convertir Vue Flow ni Pinia en fuente de verdad.
+CU-00 a CU-08 estan implementados. CU-08 protege `/projects` con JWT, usa `current_user.id` para proyectos nuevos y conserva `ProjectDocument`, CAS y Command Bus sin cambios semanticos. CU-07 persiste `ProjectDocument`, expone lectura y mutaciones con lock/CAS y conecta el editor Vue a `/projects`.
 
 El bridge HTTP temporal de CU-06 fue retirado en CU-07. Los proyectos y mutaciones usan `/projects`; PostgreSQL es la fuente persistente y el cache process-local del bus conserva solo el historial de Undo/Redo de la instancia actual. Tras reiniciar, el documento se recupera desde PostgreSQL y las operaciones nuevas generan historial para la nueva instancia.
 
@@ -26,7 +26,7 @@ La base validada es PostgreSQL local de Windows: `localhost:5432/examen_sw1`, us
 
 ## Roadmap
 
-`docs/puds/` es la unica fuente de roadmap y CUs. CU-07 esta DONE; CU-08 incorpora auth/ownership. CU-09 administra acceso de colaboradores antes de CU-10 realtime. AWS se implementara en CU-23 y CU-24 ejecutara la aceptacion integral del MVP.
+`docs/puds/` es la unica fuente de roadmap y CUs. CU-08 esta implementado; CU-09 administra acceso de colaboradores antes de CU-10 realtime. AWS se implementara en CU-23 y CU-24 ejecutara la aceptacion integral del MVP.
 
 ## Editor CU-06
 

@@ -16,7 +16,7 @@ class ProjectRecord(Base):
     __tablename__ = "projects"
 
     id: Mapped[UUID] = mapped_column(PostgreSQLUUID(as_uuid=True), primary_key=True)
-    owner_id: Mapped[UUID] = mapped_column(PostgreSQLUUID(as_uuid=True), nullable=False)
+    owner_id: Mapped[UUID] = mapped_column(PostgreSQLUUID(as_uuid=True), nullable=False, index=True)
     # DeclarativeBase reserves `metadata`, so the Python attribute uses a distinct name.
     project_metadata: Mapped[dict[str, Any]] = mapped_column("metadata", JSONB, nullable=False)
     revision: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -68,8 +68,12 @@ def get_project(session: Session, project_id: UUID) -> ProjectDocument | None:
     return None if record is None else project_document_from_record(record)
 
 
-def list_projects(session: Session) -> Sequence[ProjectRecord]:
-    statement = select(ProjectRecord).order_by(ProjectRecord.updated_at.desc())
+def list_projects(session: Session, owner_id: UUID) -> Sequence[ProjectRecord]:
+    statement = (
+        select(ProjectRecord)
+        .where(ProjectRecord.owner_id == owner_id)
+        .order_by(ProjectRecord.updated_at.desc())
+    )
     return session.scalars(statement).all()
 
 
@@ -81,7 +85,6 @@ def update_project_if_revision(
         update(ProjectRecord)
         .where(ProjectRecord.id == document.id, ProjectRecord.revision == base_revision)
         .values(
-            owner_id=document.owner_id,
             project_metadata=data["metadata"],
             revision=document.revision,
             created_at=document.created_at,
