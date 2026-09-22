@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import DateTime, Integer, select, update
+from sqlalchemy import DateTime, Integer, or_, select, update
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.dialects.postgresql import UUID as PostgreSQLUUID
 from sqlalchemy.orm import Mapped, Session, mapped_column
@@ -69,9 +69,20 @@ def get_project(session: Session, project_id: UUID) -> ProjectDocument | None:
 
 
 def list_projects(session: Session, owner_id: UUID) -> Sequence[ProjectRecord]:
+    from app.db.memberships import ProjectMembershipRecord
+
     statement = (
         select(ProjectRecord)
-        .where(ProjectRecord.owner_id == owner_id)
+        .outerjoin(
+            ProjectMembershipRecord,
+            ProjectMembershipRecord.project_id == ProjectRecord.id,
+        )
+        .where(
+            or_(
+                ProjectRecord.owner_id == owner_id,
+                ProjectMembershipRecord.user_id == owner_id,
+            )
+        )
         .order_by(ProjectRecord.updated_at.desc())
     )
     return session.scalars(statement).all()

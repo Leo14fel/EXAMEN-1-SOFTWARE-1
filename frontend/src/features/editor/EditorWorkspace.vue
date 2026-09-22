@@ -11,6 +11,7 @@ import type {
   ProjectSummary,
   UmlClass,
   UmlCommand,
+  ProjectRole,
   UmlRelationship,
 } from './types'
 import { computeAutoLayout } from './canvas/auto-layout'
@@ -21,7 +22,7 @@ import { useAuthStore } from '../auth/auth-store'
 
 const editorStore = useEditorStore()
 const authStore = useAuthStore()
-const { document, loading, error, projectId, projects, canUndo, canRedo } = storeToRefs(editorStore)
+const { document, loading, error, projectId, projects, canUndo, canRedo, effectiveRole, collaborators } = storeToRefs(editorStore)
 
 const selectedElementId = ref<string | null>(null)
 const relationshipDialogOpen = ref(false)
@@ -29,6 +30,9 @@ const projectMenuOpen = ref(false)
 const createProjectDialogOpen = ref(false)
 const newProjectName = ref('')
 const batchBusy = ref(false)
+const collaboratorsDialogOpen = ref(false)
+const collaboratorEmail = ref('')
+const collaboratorRole = ref<ProjectRole>('EDITOR')
 const canvasRef = ref<{ fitContent: () => void } | null>(null)
 
 const shortProjectId = computed(() => projectId.value?.slice(0, 8) ?? 'sin proyecto')
@@ -38,6 +42,8 @@ const projectName = computed(() => {
 })
 const revision = computed(() => document.value?.revision ?? 0)
 const busy = computed(() => loading.value || batchBusy.value)
+const canEdit = computed(() => effectiveRole.value === 'EDITOR')
+const isOwner = computed(() => document.value?.ownerId === authStore.user?.id)
 const classes = computed(() =>
   document.value?.umlModel.elements.filter(
     (element): element is UmlClass => element.kind === 'class',
@@ -57,6 +63,41 @@ async function openProject(project: ProjectSummary): Promise<void> {
     selectedElementId.value = null
     await editorStore.openProject(project.id)
     projectMenuOpen.value = false
+  } catch {
+    // El store expone el mensaje en `error`.
+  }
+}
+
+async function openCollaborators(): Promise<void> {
+  try {
+    await editorStore.loadCollaborators()
+    collaboratorsDialogOpen.value = true
+  } catch {
+    // El store expone el mensaje en `error`.
+  }
+}
+
+async function addCollaborator(): Promise<void> {
+  if (!collaboratorEmail.value.trim()) return
+  try {
+    await editorStore.addCollaborator(collaboratorEmail.value.trim(), collaboratorRole.value)
+    collaboratorEmail.value = ''
+  } catch {
+    // El store expone el mensaje en `error`.
+  }
+}
+
+async function changeCollaboratorRole(userId: string, role: ProjectRole): Promise<void> {
+  try {
+    await editorStore.updateCollaborator(userId, role)
+  } catch {
+    // El store expone el mensaje en `error`.
+  }
+}
+
+async function removeCollaborator(userId: string): Promise<void> {
+  try {
+    await editorStore.removeCollaborator(userId)
   } catch {
     // El store expone el mensaje en `error`.
   }
@@ -84,7 +125,7 @@ async function executeCommand(command: UmlCommand): Promise<boolean> {
 }
 
 async function createClass(): Promise<void> {
-  if (!document.value || busy.value) return
+  if (!document.value || busy.value || !canEdit.value) return
   const element = createUmlClass(nextClassName(document.value))
 
   if (
@@ -98,7 +139,7 @@ async function createClass(): Promise<void> {
 }
 
 async function createRelationship(relationship: UmlRelationship): Promise<void> {
-  if (!document.value || busy.value) return
+  if (!document.value || busy.value || !canEdit.value) return
 
   if (
     await executeCommand({
@@ -114,6 +155,7 @@ async function handleMoveNode(payload: {
   elementId: string
   layout: DiagramNodeLayout
 }): Promise<void> {
+  if (!canEdit.value) return
   await executeCommand({
     commandType: 'setNodeLayout',
     elementId: payload.elementId,
@@ -130,7 +172,7 @@ async function handleInspectorCommand(command: UmlCommand): Promise<void> {
 }
 
 async function undo(): Promise<void> {
-  if (!canUndo.value || busy.value) return
+  if (!canEdit.value || !canUndo.value || busy.value) return
   try {
     await editorStore.undo()
     ensureValidSelection()
@@ -140,7 +182,7 @@ async function undo(): Promise<void> {
 }
 
 async function redo(): Promise<void> {
-  if (!canRedo.value || busy.value) return
+  if (!canEdit.value || !canRedo.value || busy.value) return
   try {
     await editorStore.redo()
     ensureValidSelection()
@@ -150,7 +192,7 @@ async function redo(): Promise<void> {
 }
 
 async function autoLayout(): Promise<void> {
-  if (!document.value || classes.value.length === 0 || busy.value) return
+  if (!document.value || !canEdit.value || classes.value.length === 0 || busy.value) return
 
   batchBusy.value = true
   try {
@@ -236,6 +278,12 @@ onMounted(loadProjects)
             <v-chip size="small" variant="tonal" color="primary">
               Revisión {{ revision }}
             </v-chip>
+            <v-chip v-if="effectiveRole" size="small" variant="tonal" :color="canEdit ? 'secondary' : 'warning'">
+              {{ canEdit ? 'Editor' : 'Solo lectura' }}
+            </v-chip>
+            <v-btn v-if="isOwner" size="small" variant="text" prepend-icon="mdi-account-group-outline" @click="openCollaborators">
+              Colaboradores
+            </v-btn>
             <v-btn size="small" variant="text" prepend-icon="mdi-logout" @click="authStore.logout">
               Salir
             </v-btn>
@@ -266,7 +314,7 @@ onMounted(loadProjects)
                 color="primary"
                 variant="flat"
                 prepend-icon="mdi-plus-box-outline"
-                :disabled="busy"
+                :disabled="busy || !canEdit"
                 @click="createClass"
               >
                 Nueva clase
@@ -275,7 +323,7 @@ onMounted(loadProjects)
                 color="secondary"
                 variant="tonal"
                 prepend-icon="mdi-vector-line"
-                :disabled="busy || classes.length === 0"
+                :disabled="busy || !canEdit || classes.length === 0"
                 @click="relationshipDialogOpen = true"
               >
                 Nueva relación
@@ -286,7 +334,7 @@ onMounted(loadProjects)
               <v-btn
                 variant="text"
                 prepend-icon="mdi-undo"
-                :disabled="busy || !canUndo"
+                :disabled="busy || !canEdit || !canUndo"
                 @click="undo"
               >
                 Deshacer
@@ -294,7 +342,7 @@ onMounted(loadProjects)
               <v-btn
                 variant="text"
                 prepend-icon="mdi-redo"
-                :disabled="busy || !canRedo"
+                :disabled="busy || !canEdit || !canRedo"
                 @click="redo"
               >
                 Rehacer
@@ -302,7 +350,7 @@ onMounted(loadProjects)
               <v-btn
                 variant="tonal"
                 prepend-icon="mdi-auto-fix"
-                :disabled="busy || classes.length === 0"
+                :disabled="busy || !canEdit || classes.length === 0"
                 @click="autoLayout"
               >
                 Auto-organizar
@@ -320,14 +368,14 @@ onMounted(loadProjects)
                   prepend-icon="mdi-cube-outline"
                   title="Clase"
                   subtitle="Nueva clase UML"
-                  :disabled="busy"
+                  :disabled="busy || !canEdit"
                   @click="createClass"
                 />
                 <v-list-item
                   prepend-icon="mdi-vector-line"
                   title="Relación"
                   subtitle="Asociación, agregación, composición o herencia"
-                  :disabled="busy || classes.length === 0"
+                  :disabled="busy || !canEdit || classes.length === 0"
                   @click="relationshipDialogOpen = true"
                 />
               </v-list>
@@ -351,7 +399,7 @@ onMounted(loadProjects)
               ref="canvasRef"
               :document="document"
               :selected-element-id="selectedElementId"
-              :busy="busy"
+              :busy="busy || !canEdit"
               @select="selectedElementId = $event"
               @move-node="handleMoveNode"
             />
@@ -359,7 +407,7 @@ onMounted(loadProjects)
             <InspectorPanel
               :document="document"
               :selected-element-id="selectedElementId"
-              :busy="busy"
+              :busy="busy || !canEdit"
               @execute="handleInspectorCommand"
               @clear-selection="selectedElementId = null"
             />
@@ -368,7 +416,7 @@ onMounted(loadProjects)
           <RelationshipDialog
             v-model="relationshipDialogOpen"
             :classes="classes"
-            :busy="busy"
+            :busy="busy || !canEdit"
             @create="createRelationship"
           />
         </template>
@@ -398,6 +446,36 @@ onMounted(loadProjects)
                 Crear
               </v-btn>
             </v-card-actions>
+          </v-card>
+        </v-dialog>
+
+        <v-dialog v-model="collaboratorsDialogOpen" max-width="560">
+          <v-card>
+            <v-card-title>Colaboradores</v-card-title>
+            <v-card-text>
+              <div class="collaborator-form">
+                <v-text-field v-model="collaboratorEmail" label="Correo del usuario" density="compact" hide-details />
+                <v-select v-model="collaboratorRole" :items="['EDITOR', 'VIEWER']" label="Rol" density="compact" hide-details />
+                <v-btn color="primary" :disabled="busy || !collaboratorEmail.trim()" @click="addCollaborator">Agregar</v-btn>
+              </div>
+              <v-list density="compact" class="mt-4">
+                <v-list-item v-for="collaborator in collaborators" :key="collaborator.userId" :title="collaborator.email">
+                  <template #append>
+                    <v-select
+                      :model-value="collaborator.role"
+                      :items="['EDITOR', 'VIEWER']"
+                      density="compact"
+                      hide-details
+                      style="width: 120px"
+                      @update:model-value="changeCollaboratorRole(collaborator.userId, $event as ProjectRole)"
+                    />
+                    <v-btn icon="mdi-account-remove-outline" variant="text" :disabled="busy" @click="removeCollaborator(collaborator.userId)" />
+                  </template>
+                </v-list-item>
+                <v-list-item v-if="collaborators.length === 0" title="No hay colaboradores" />
+              </v-list>
+            </v-card-text>
+            <v-card-actions><v-spacer /><v-btn @click="collaboratorsDialogOpen = false">Cerrar</v-btn></v-card-actions>
           </v-card>
         </v-dialog>
       </div>
@@ -481,6 +559,13 @@ onMounted(loadProjects)
   background: #0c141d;
 }
 
+.collaborator-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 120px auto;
+  gap: 8px;
+  align-items: center;
+}
+
 @media (max-width: 1180px) {
   .editor-grid {
     grid-template-columns: 180px minmax(0, 1fr) 300px;
@@ -504,6 +589,10 @@ onMounted(loadProjects)
 
   .editor-toolbar__status {
     justify-content: flex-start;
+  }
+
+  .collaborator-form {
+    grid-template-columns: 1fr;
   }
 }
 </style>

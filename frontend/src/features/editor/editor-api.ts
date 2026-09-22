@@ -1,5 +1,12 @@
 import { authenticatedFetch } from '../../services/api'
-import type { ProjectDocument, ProjectEditorState, ProjectSummary, UmlCommand } from './types'
+import type {
+  ProjectCollaborator,
+  ProjectDocument,
+  ProjectEditorState,
+  ProjectRole,
+  ProjectSummary,
+  UmlCommand,
+} from './types'
 
 interface ApiErrorPayload {
   detail?: {
@@ -34,7 +41,7 @@ async function editorRequest<T>(path: string, init?: RequestInit): Promise<T> {
       payload?.detail?.code,
     )
   }
-  return response.json() as Promise<T>
+  return response.status === 204 ? (undefined as T) : (response.json() as Promise<T>)
 }
 
 export function createProject(metadata: Record<string, string>): Promise<ProjectDocument> {
@@ -78,5 +85,39 @@ export function redoProject(projectId: string, baseRevision: number): Promise<Pr
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ baseRevision }),
+  })
+}
+
+export function listCollaborators(projectId: string): Promise<ProjectCollaborator[]> {
+  return editorRequest(`/projects/${projectId}/collaborators`)
+}
+
+export function addCollaborator(
+  projectId: string,
+  email: string,
+  role: ProjectRole,
+): Promise<ProjectCollaborator> {
+  return editorRequest(`/projects/${projectId}/collaborators`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, role }),
+  })
+}
+
+export function updateCollaborator(
+  projectId: string,
+  collaboratorId: string,
+  role: ProjectRole,
+): Promise<ProjectCollaborator> {
+  return editorRequest(`/projects/${projectId}/collaborators/${collaboratorId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ role }),
+  })
+}
+
+export async function removeCollaborator(projectId: string, collaboratorId: string): Promise<void> {
+  await editorRequest<undefined>(`/projects/${projectId}/collaborators/${collaboratorId}`, {
+    method: 'DELETE',
   })
 }
