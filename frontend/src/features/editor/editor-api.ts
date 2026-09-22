@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '../../services/api'
+import { authenticatedFetch } from '../../services/api'
 import type { ProjectDocument, ProjectEditorState, ProjectSummary, UmlCommand } from './types'
 
 interface ApiErrorPayload {
@@ -20,7 +20,7 @@ export class EditorApiError extends Error {
 }
 
 async function editorRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, init)
+  const response = await authenticatedFetch(path, init)
   if (!response.ok) {
     let payload: ApiErrorPayload | null = null
     try {

@@ -134,7 +134,7 @@ def test_list_projects_orders_by_updated_at_descending() -> None:
 
     session = FakeSession()
 
-    assert list_projects(session) == []  # type: ignore[arg-type]
+    assert list_projects(session, OWNER_ID) == []  # type: ignore[arg-type]
     assert session.statement is not None
     compiled = str(session.statement.compile(dialect=postgresql.dialect()))  # type: ignore[union-attr]
     assert "ORDER BY projects.updated_at DESC" in compiled

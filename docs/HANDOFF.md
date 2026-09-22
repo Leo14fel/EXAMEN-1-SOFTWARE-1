@@ -2,11 +2,11 @@
 
 ## Ultimo punto estable
 
-CU-00 a CU-07 estan cerrados. El stack instalado es Vue 3 + TypeScript + Vite + Vuetify y Python + FastAPI + SQLAlchemy + Alembic. La evidencia de CU-07 vive en `docs/puds/use-cases/CU-07-project-persistence.md`.
+CU-00 a CU-08 estan implementados. CU-08 agrega JWT, Argon2 y ownership; su evidencia vive en `docs/puds/use-cases/CU-08-authentication-ownership.md`.
 
 ## Proximo paso exacto
 
-Iniciar CU-08: autenticacion, ownership y administracion de proyectos. CU-07 esta DONE, incluidos sus tres incrementos y la prueba manual humana final del editor persistente.
+CU-09 es el siguiente paso: acceso de colaboradores. No adelantar memberships, invitaciones ni realtime.
 
 ## Editor persistente
 

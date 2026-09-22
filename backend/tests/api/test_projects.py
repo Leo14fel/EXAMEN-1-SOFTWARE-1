@@ -6,7 +6,9 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.api import projects
+from app.api.auth import get_current_user
 from app.db.projects import ProjectRecord
+from app.db.users import UserRecord
 from app.domain.uml.models import ProjectDocument
 from app.main import app
 
@@ -28,6 +30,13 @@ class FakeSession:
 @pytest.fixture(autouse=True)
 def override_database_session() -> Generator[None]:
     app.dependency_overrides[projects.get_db_session] = lambda: FakeSession()
+    app.dependency_overrides[get_current_user] = lambda: UserRecord(
+        id=OWNER_ID,
+        email="owner@example.com",
+        password_hash="not-used",
+        created_at=CREATED_AT,
+        updated_at=UPDATED_AT,
+    )
     yield
     app.dependency_overrides.clear()
 
@@ -42,7 +51,7 @@ def make_document() -> ProjectDocument:
     )
 
 
-def test_create_project_generates_owner_and_returns_empty_valid_document(
+def test_create_project_uses_authenticated_owner_and_returns_empty_valid_document(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     created_documents: list[ProjectDocument] = []
@@ -62,7 +71,7 @@ def test_create_project_generates_owner_and_returns_empty_valid_document(
     assert payload["umlModel"] == {"elements": []}
     assert payload["diagramLayout"] == {"nodes": {}}
     assert payload["createdAt"] <= payload["updatedAt"]
-    assert created_documents[0].owner_id != OWNER_ID
+    assert created_documents[0].owner_id == OWNER_ID
 
 
 def test_create_project_rejects_client_supplied_owner_id() -> None:
@@ -94,7 +103,11 @@ def test_list_projects_returns_summaries_in_repository_order(
         uml_model={"elements": []},
         diagram_layout={"nodes": {}},
     )
-    monkeypatch.setattr(projects, "list_projects", lambda _: [newer, older])
+    monkeypatch.setattr(
+        projects,
+        "list_projects",
+        lambda _, owner_id: [newer, older] if owner_id == OWNER_ID else [],
+    )
 
     response = client.get("/projects")
 

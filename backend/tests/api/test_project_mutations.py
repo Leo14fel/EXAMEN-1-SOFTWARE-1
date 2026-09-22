@@ -9,6 +9,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.api import projects
+from app.api.auth import get_current_user
+from app.db.users import UserRecord
 from app.domain.uml.models import ProjectDocument
 from app.main import app
 
@@ -124,6 +126,13 @@ def store(monkeypatch: pytest.MonkeyPatch) -> InMemoryProjectStore:
 @pytest.fixture
 def client(store: InMemoryProjectStore) -> TestClient:
     app.dependency_overrides[projects.get_db_session] = lambda: FakeSession(store)
+    app.dependency_overrides[get_current_user] = lambda: UserRecord(
+        id=OWNER_ID,
+        email="owner@example.com",
+        password_hash="not-used",
+        created_at=CREATED_AT,
+        updated_at=CREATED_AT,
+    )
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()

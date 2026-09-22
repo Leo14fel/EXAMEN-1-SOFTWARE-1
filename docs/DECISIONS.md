@@ -137,3 +137,9 @@ Las autorrelaciones de association, aggregation y composition se mantienen permi
 Vue Flow sigue siendo una proyeccion de `ProjectDocument`. Un edge reutilizable recibe datos derivados por `projectDocumentToFlow()` para renderizar los markers UML existentes, labels de multiplicidad por extremo y una curva lateral para self-loops. Usa el hitbox y eventos nativos de `BaseEdge`, por lo que la seleccion sigue la misma ruta Vue Flow -> `selectedElementId` -> inspector.
 
 Los self-loops se excluyen solamente del grafo de `d3-dag`; no se eliminan ni se persisten datos visuales adicionales. Las relaciones paralelas reciben una desviacion Bezier derivada minima para no quedar completamente superpuestas. No se agregan tipos UML, roles, navegabilidad ni routing avanzado.
+
+## ADR-lite 021 - JWT local y ownership sin FK legacy
+
+**Estado:** aceptada
+
+CU-08 usa PyJWT Bearer configurable y `pwdlib`/Argon2. El MVP mantiene JWT en `localStorage`, centraliza el header y limpia 401. Los nuevos proyectos usan `current_user.id`; no se fuerza FK para UUID temporales de CU-07. La migracion es aditiva y CU-09 agregara colaboradores.

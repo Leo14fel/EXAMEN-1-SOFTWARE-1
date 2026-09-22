@@ -36,7 +36,7 @@ describe('editor api', () => {
 
     expect(fetchMock).toHaveBeenCalledWith('http://localhost:8000/projects', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: expect.any(Headers),
       body: JSON.stringify({ metadata: { name: 'Ventas' } }),
     })
   })
@@ -65,11 +65,13 @@ describe('editor api', () => {
     await expect(listProjects()).resolves.toHaveLength(1)
     await expect(getProject(document.id)).resolves.toEqual(document)
 
-    expect(fetchMock).toHaveBeenNthCalledWith(1, 'http://localhost:8000/projects', undefined)
+    expect(fetchMock).toHaveBeenNthCalledWith(1, 'http://localhost:8000/projects', {
+      headers: expect.any(Headers),
+    })
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
       `http://localhost:8000/projects/${document.id}`,
-      undefined,
+      { headers: expect.any(Headers) },
     )
   })
 
