@@ -130,3 +130,9 @@ Las pruebas frontend cubren listado, creacion, apertura y cambio de proyectos, e
 - global: `scripts/check.ps1`: OK;
 - PostgreSQL: `python -m alembic check` informa `No new upgrade operations detected.` y `GET /health/db`: 200 OK;
 - prueba manual humana final aprobada: crear y abrir proyecto, clases, atributos, relacion, movimiento/layout, auto-layout, inspector, Undo/Redo y recuperacion de clases, atributos, relaciones y layout despues de reiniciar FastAPI. Una nueva operacion posterior al reinicio y su Undo/Redo tambien fueron aprobados.
+
+### UML Editor Completeness - relaciones visuales
+
+Las pruebas de frontend verifican los cuatro tipos de relacion, los markers UML, multiplicidades por extremo, self-loops seleccionables con curva lateral, ausencia de multiplicidades en generalization y la exclusion del origen como destino de una generalization tanto en dialogo como en inspector. Tambien cubren el auto-layout que ignora self-loops sin quitarlos del documento, y la preservacion de borradores dirty del inspector.
+
+Las pruebas de backend de integridad de relaciones cubren creacion, actualizacion, eliminacion, Undo/Redo, persistencia y reapertura de las cuatro relaciones, incluidas autorrelaciones permitidas, junto con el rechazo autoritativo de `GENERALIZATION_SELF_REFERENCE` y `GENERALIZATION_CYCLE`.

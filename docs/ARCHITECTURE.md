@@ -115,6 +115,14 @@ El canvas permite drag visual, pero solo persiste la posicion al finalizar el mo
 
 `d3-dag` calcula posiciones de auto-layout en frontend. Cada posicion calculada se envia despues como `SetNodeLayoutCommand`, por lo que el documento canonico sigue siendo la fuente de verdad. En CU-06 el auto-layout puede producir varias entradas de historial, una por clase, porque no existe un comando compuesto y no se introduce uno artificialmente en este CU.
 
+## Relaciones visuales - UML Editor Completeness
+
+`projectDocumentToFlow()` deriva las relaciones soportadas como edges UML: association conserva una linea simple; aggregation usa diamante hueco en `sourceId`; composition usa diamante lleno en `sourceId`; y generalization usa triangulo hueco en `targetId`. Las multiplicidades de association, aggregation y composition se derivan como labels independientes junto a cada extremo; generalization no recibe labels de multiplicidad.
+
+Cuando `sourceId == targetId`, el mapper marca un self-loop y el edge Vue Flow reutilizable dibuja una curva Bezier lateral con un hitbox ampliado. El edge sigue usando la seleccion nativa de Vue Flow, por lo que alimenta el mismo inspector y no crea estado semantico paralelo. Association, aggregation y composition pueden usar esta representacion; generalization autorreferenciada permanece bloqueada por el backend.
+
+El auto-layout excluye self-loops solo del grafo de `d3-dag`, porque no aportan jerarquia de nodos. No elimina ni modifica la relacion del `ProjectDocument`; todos los edges siguen renderizandose despues del layout. Dependency, Realization, roles de extremo, navegabilidad y asociaciones n-arias no estan implementados.
+
 ## Persistencia de proyectos - CU-07 Incremento 1
 
 `projects` conserva una fila por `ProjectDocument`: identidad, owner estructural, metadata, revision y timestamps son columnas tipadas; `uml_model` y `diagram_layout` son columnas `JSONB` separadas. La persistencia no modela elementos UML en tablas relacionales ni reemplaza el documento como fuente canonica. Cada lectura reconstruye el documento mediante Pydantic antes de entregarlo.

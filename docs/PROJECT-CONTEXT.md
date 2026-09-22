@@ -32,6 +32,8 @@ La base validada es PostgreSQL local de Windows: `localhost:5432/examen_sw1`, us
 
 El frontend envia mutaciones como `UmlCommand` al backend y recibe una nueva proyeccion de `ProjectDocument`. El drag se confirma con `SetNodeLayoutCommand`; Undo/Redo pertenecen al backend; el auto-layout usa `d3-dag`. El inspector conserva borradores con cambios sin guardar frente a revisiones externas del documento.
 
+Las relaciones visuales usan un edge custom derivado: association es una linea continua; aggregation/composition muestran diamante hueco/lleno en source; generalization muestra triangulo hueco en target y no multiplicidades. Las otras tres relaciones pueden ser recursivas y se muestran como self-loops curvos seleccionables con labels por extremo. Los self-loops se omiten solo del input de auto-layout, nunca del documento ni del render. La UI previene `source == target` para generalization; la autoridad para ciclos indirectos sigue en backend.
+
 ## Benchmarks
 
 Los benchmarks de LLM, STT y VLM viven en `docs/benchmarks/`. Registrar unicamente mediciones reales, configuracion, hardware, fecha y edge cases manuales.

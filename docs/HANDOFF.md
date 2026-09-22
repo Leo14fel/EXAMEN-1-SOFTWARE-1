@@ -24,6 +24,8 @@ Toda mutacion UML recorre `UmlCommand -> UmlCommandBus -> execute_uml_command ->
 
 El editor permite crear/editar/eliminar clases, atributos, operaciones, parametros y relaciones; mover nodos; Undo/Redo; auto-layout `d3-dag`; seleccion e inspector. Los borradores del inspector no se reemplazan por revisiones externas mientras existan cambios sin guardar.
 
+Association se dibuja como linea continua; aggregation y composition usan respectivamente diamante hueco y lleno en el origen; generalization usa triangulo hueco en el destino y no tiene multiplicidades. Association, aggregation y composition permiten self-loops: se proyectan como curvas laterales seleccionables con markers y multiplicidades por extremo. El auto-layout los excluye solo del grafo estructural y los conserva en el documento y canvas. Dialogo e inspector impiden autoherencia; los ciclos indirectos siguen siendo rechazados por el backend con `GENERALIZATION_CYCLE`.
+
 ## PostgreSQL actual
 
 Desarrollo validado: PostgreSQL local de Windows en `localhost:5432`, base `examen_sw1`, usuario `postgres`. Docker Compose es opcional y publica `localhost:55432` hacia `5432` dentro del contenedor.

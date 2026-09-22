@@ -129,3 +129,11 @@ El frontend usa `/projects` para listar, crear, abrir y mutar. El store Pinia ad
 Los diagnosticos UML permanecen separados de las invariantes estructurales y no bloquean comandos de forma general. Sin embargo, una generalization autoreferenciada o ciclica nunca es un estado admisible del editor. El executor construye el modelo candidato y consulta una funcion pura del dominio que reutiliza las reglas de validacion existentes para detectar exclusivamente `GENERALIZATION_SELF_REFERENCE` y `GENERALIZATION_CYCLE`; ante una de ellas rechaza el comando antes de modificar snapshots, revision o persistencia.
 
 Las autorrelaciones de association, aggregation y composition se mantienen permitidas: describen una relacion entre instancias de un mismo classifier y no implican que una instancia se contenga a si misma. Dependency, Realization, roles de extremo, navegabilidad y asociaciones n-arias siguen fuera del dominio actual.
+
+## ADR-lite 020 - Edges UML derivados y self-loops visuales
+
+**Estado:** aceptada
+
+Vue Flow sigue siendo una proyeccion de `ProjectDocument`. Un edge reutilizable recibe datos derivados por `projectDocumentToFlow()` para renderizar los markers UML existentes, labels de multiplicidad por extremo y una curva lateral para self-loops. Usa el hitbox y eventos nativos de `BaseEdge`, por lo que la seleccion sigue la misma ruta Vue Flow -> `selectedElementId` -> inspector.
+
+Los self-loops se excluyen solamente del grafo de `d3-dag`; no se eliminan ni se persisten datos visuales adicionales. Las relaciones paralelas reciben una desviacion Bezier derivada minima para no quedar completamente superpuestas. No se agregan tipos UML, roles, navegabilidad ni routing avanzado.
