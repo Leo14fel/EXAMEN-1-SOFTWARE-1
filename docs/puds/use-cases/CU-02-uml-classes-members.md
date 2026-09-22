@@ -1,6 +1,6 @@
 # CU-02 - Clases y miembros UML
 
-**Estado:** READY_FOR_USER_VALIDATION
+**Estado:** DONE
 
 ## 1. Objetivo
 

@@ -64,4 +64,35 @@ describe('computeAutoLayout', () => {
     expect(result[customer.id]).not.toEqual(result[order.id])
     expect(result[customer.id].y).toBeLessThan(result[order.id].y)
   })
+
+  it('ignora self-loops para el grafo de layout sin eliminarlos del documento', () => {
+    const folder = umlClass('00000000-0000-0000-0000-000000000010', 'Carpeta')
+    const document: ProjectDocument = {
+      id: '00000000-0000-0000-0000-000000000001',
+      metadata: {},
+      ownerId: '00000000-0000-0000-0000-000000000002',
+      revision: 0,
+      createdAt: '2026-09-15T12:00:00Z',
+      updatedAt: '2026-09-15T12:00:00Z',
+      umlModel: {
+        elements: [
+          folder,
+          {
+            id: '00000000-0000-0000-0000-000000000020',
+            kind: 'composition',
+            sourceId: folder.id,
+            targetId: folder.id,
+            sourceMultiplicity: { lower: 0, upper: 1 },
+            targetMultiplicity: { lower: 0, upper: '*' },
+          },
+        ],
+      },
+      diagramLayout: { nodes: {} },
+    }
+
+    const result = computeAutoLayout(document)
+
+    expect(result[folder.id]).toMatchObject({ width: 280, height: 180 })
+    expect(document.umlModel.elements).toHaveLength(2)
+  })
 })

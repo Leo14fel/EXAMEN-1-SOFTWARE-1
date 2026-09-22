@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type {
   ProjectDocument,
   UmlAssociation,
+  UmlAggregation,
   UmlClass,
   UmlComposition,
   UmlGeneralization,
@@ -71,7 +72,7 @@ describe('projectDocumentToFlow', () => {
     expect(firstProjection.nodes[0].position).not.toEqual(firstProjection.nodes[1].position)
   })
 
-  it('proyecta association y composition con multiplicidades y marcador UML', () => {
+  it('proyecta las relaciones con markers UML y multiplicidades por extremo', () => {
     const customer = umlClass('00000000-0000-0000-0000-000000000010', 'Cliente')
     const order = umlClass('00000000-0000-0000-0000-000000000011', 'Pedido')
     const association: UmlAssociation = {
@@ -90,15 +91,41 @@ describe('projectDocumentToFlow', () => {
       sourceMultiplicity: { lower: 1, upper: 1 },
       targetMultiplicity: { lower: 1, upper: '*' },
     }
+    const aggregation: UmlAggregation = {
+      id: '00000000-0000-0000-0000-000000000022',
+      kind: 'aggregation',
+      sourceId: order.id,
+      targetId: customer.id,
+      sourceMultiplicity: { lower: 0, upper: 1 },
+      targetMultiplicity: { lower: 1, upper: '*' },
+    }
 
     const projection = projectDocumentToFlow(
-      baseDocument([customer, order, association, composition]),
+      baseDocument([customer, order, association, composition, aggregation]),
     )
 
-    expect(projection.edges[0].label).toBe('asociación · 1 → 0..*')
+    const [edge] = projection.edges
+    if (!edge) throw new Error('expected generalization edge')
+
+    expect(edge).toMatchObject({
+      type: 'umlRelationship',
+      markerStart: undefined,
+      markerEnd: undefined,
+      data: {
+        sourceMultiplicityLabel: '1',
+        targetMultiplicityLabel: '0..*',
+      },
+    })
     expect(projection.edges[1]).toMatchObject({
-      label: 'composición · 1 → 1..*',
       markerStart: 'url(#uml-composition-diamond)',
+      data: {
+        sourceMultiplicityLabel: '1',
+        targetMultiplicityLabel: '1..*',
+      },
+    })
+    expect(projection.edges[2]).toMatchObject({
+      markerStart: 'url(#uml-aggregation-diamond)',
+      markerEnd: undefined,
     })
   })
 
@@ -113,15 +140,47 @@ describe('projectDocumentToFlow', () => {
     }
 
     const projection = projectDocumentToFlow(baseDocument([child, parent, generalization]))
+    const [edge] = projection.edges
+    if (!edge) throw new Error('expected generalization edge')
 
-    expect(projection.edges).toEqual([
-      expect.objectContaining({
-        id: generalization.id,
-        source: child.id,
-        target: parent.id,
-        label: 'generalización',
-        markerEnd: 'url(#uml-generalization-triangle)',
-      }),
-    ])
+    expect(edge).toMatchObject({
+      id: generalization.id,
+      source: child.id,
+      target: parent.id,
+      markerEnd: 'url(#uml-generalization-triangle)',
+      data: {
+        kind: 'generalization',
+        isSelfLoop: false,
+      },
+    })
+    expect(edge.data?.sourceMultiplicityLabel).toBeUndefined()
+    expect(edge.data?.targetMultiplicityLabel).toBeUndefined()
+  })
+
+  it('deriva self-loops seleccionables como edges UML con multiplicidades separadas', () => {
+    const employee = umlClass('00000000-0000-0000-0000-000000000010', 'Empleado')
+    const relationship: UmlAssociation = {
+      id: '00000000-0000-0000-0000-000000000020',
+      kind: 'association',
+      sourceId: employee.id,
+      targetId: employee.id,
+      sourceMultiplicity: { lower: 0, upper: 1 },
+      targetMultiplicity: { lower: 0, upper: '*' },
+    }
+
+    const projection = projectDocumentToFlow(baseDocument([employee, relationship]), relationship.id)
+
+    expect(projection.edges[0]).toMatchObject({
+      type: 'umlRelationship',
+      source: employee.id,
+      target: employee.id,
+      selected: true,
+      selectable: true,
+      data: {
+        isSelfLoop: true,
+        sourceMultiplicityLabel: '0..1',
+        targetMultiplicityLabel: '0..*',
+      },
+    })
   })
 })

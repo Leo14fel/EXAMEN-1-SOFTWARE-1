@@ -16,6 +16,7 @@ PROJECT_ID = UUID("11111111-1111-1111-1111-111111111111")
 OWNER_ID = UUID("22222222-2222-2222-2222-222222222222")
 FIRST_CLASS_ID = UUID("33333333-3333-3333-3333-333333333333")
 SECOND_CLASS_ID = UUID("44444444-4444-4444-4444-444444444444")
+THIRD_CLASS_ID = UUID("66666666-6666-6666-6666-666666666666")
 RELATIONSHIP_ID = UUID("55555555-5555-5555-5555-555555555555")
 CREATED_AT = datetime(2026, 9, 20, 12, 0, tzinfo=UTC)
 
@@ -30,6 +31,20 @@ def add_class_payload(class_id: UUID, name: str) -> dict[str, object]:
             "visibility": "public",
             "attributes": [],
             "operations": [],
+        },
+    }
+
+
+def generalization_payload(
+    relationship_id: UUID, source_id: UUID, target_id: UUID
+) -> dict[str, object]:
+    return {
+        "commandType": "addElement",
+        "element": {
+            "id": str(relationship_id),
+            "kind": "generalization",
+            "sourceId": str(source_id),
+            "targetId": str(target_id),
         },
     }
 
@@ -201,6 +216,95 @@ def test_invalid_command_does_not_persist(client: TestClient, store: InMemoryPro
     assert response.json()["detail"]["code"] == "ELEMENT_ALREADY_EXISTS"
     assert store.document.revision == 1
     assert len(store.document.uml_model.elements) == 1
+
+
+def test_generalization_self_reference_is_rejected_without_persistence(
+    client: TestClient, store: InMemoryProjectStore
+) -> None:
+    assert execute(client, 0, add_class_payload(FIRST_CLASS_ID, "Customer")).status_code == 200
+    before = store.document.model_copy(deep=True)
+
+    response = execute(
+        client,
+        1,
+        generalization_payload(RELATIONSHIP_ID, FIRST_CLASS_ID, FIRST_CLASS_ID),
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "GENERALIZATION_SELF_REFERENCE"
+    assert store.document == before
+
+
+def test_direct_generalization_cycle_is_rejected_and_undo_targets_last_valid_command(
+    client: TestClient, store: InMemoryProjectStore
+) -> None:
+    assert execute(client, 0, add_class_payload(FIRST_CLASS_ID, "Customer")).status_code == 200
+    assert execute(client, 1, add_class_payload(SECOND_CLASS_ID, "Order")).status_code == 200
+    assert (
+        execute(
+            client,
+            2,
+            generalization_payload(RELATIONSHIP_ID, FIRST_CLASS_ID, SECOND_CLASS_ID),
+        ).status_code
+        == 200
+    )
+    before = store.document.model_copy(deep=True)
+
+    rejected = execute(
+        client,
+        3,
+        generalization_payload(
+            UUID("77777777-7777-7777-7777-777777777777"), SECOND_CLASS_ID, FIRST_CLASS_ID
+        ),
+    )
+
+    assert rejected.status_code == 409
+    assert rejected.json()["detail"]["code"] == "GENERALIZATION_CYCLE"
+    assert store.document == before
+    undone = client.post(f"/projects/{PROJECT_ID}/undo", json={"baseRevision": 3})
+
+    assert undone.status_code == 200
+    assert undone.json()["document"]["revision"] == 4
+    assert len(undone.json()["document"]["umlModel"]["elements"]) == 2
+
+
+def test_indirect_generalization_cycle_is_rejected_without_persistence(
+    client: TestClient, store: InMemoryProjectStore
+) -> None:
+    assert execute(client, 0, add_class_payload(FIRST_CLASS_ID, "Customer")).status_code == 200
+    assert execute(client, 1, add_class_payload(SECOND_CLASS_ID, "Order")).status_code == 200
+    assert execute(client, 2, add_class_payload(THIRD_CLASS_ID, "Invoice")).status_code == 200
+    assert (
+        execute(
+            client,
+            3,
+            generalization_payload(RELATIONSHIP_ID, FIRST_CLASS_ID, SECOND_CLASS_ID),
+        ).status_code
+        == 200
+    )
+    assert (
+        execute(
+            client,
+            4,
+            generalization_payload(
+                UUID("77777777-7777-7777-7777-777777777777"), SECOND_CLASS_ID, THIRD_CLASS_ID
+            ),
+        ).status_code
+        == 200
+    )
+    before = store.document.model_copy(deep=True)
+
+    response = execute(
+        client,
+        5,
+        generalization_payload(
+            UUID("88888888-8888-8888-8888-888888888888"), THIRD_CLASS_ID, FIRST_CLASS_ID
+        ),
+    )
+
+    assert response.status_code == 409
+    assert response.json()["detail"]["code"] == "GENERALIZATION_CYCLE"
+    assert store.document == before
 
 
 def test_stale_revision_returns_conflict_and_invalidates_bus(

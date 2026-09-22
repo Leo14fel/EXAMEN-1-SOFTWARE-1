@@ -39,6 +39,11 @@ const kindItems = [
 ]
 
 const isGeneralization = computed(() => kind.value === 'generalization')
+const targetClasses = computed(() =>
+  isGeneralization.value
+    ? props.classes.filter((umlClass) => umlClass.id !== sourceId.value)
+    : props.classes,
+)
 const sourceMultiplicity = computed(() =>
   parseMultiplicity(sourceLower.value, sourceUpper.value),
 )
@@ -48,7 +53,7 @@ const targetMultiplicity = computed(() =>
 
 const valid = computed(() => {
   if (!sourceId.value || !targetId.value) return false
-  if (isGeneralization.value) return true
+  if (isGeneralization.value) return sourceId.value !== targetId.value
   return sourceMultiplicity.value !== null && targetMultiplicity.value !== null
 })
 
@@ -125,7 +130,7 @@ function submit(): void {
           />
           <v-select
             v-model="targetId"
-            :items="classes"
+            :items="targetClasses"
             item-title="name"
             item-value="id"
             label="Clase destino"
@@ -168,7 +173,7 @@ function submit(): void {
         </div>
 
         <v-alert v-if="!valid" type="warning" variant="tonal" density="compact">
-          Selecciona clases y usa multiplicidades válidas.
+          Selecciona clases distintas para herencia y usa multiplicidades válidas cuando correspondan.
         </v-alert>
       </v-card-text>
 

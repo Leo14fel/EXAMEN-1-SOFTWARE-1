@@ -21,6 +21,7 @@ from app.domain.uml.models import (
     ProjectDocument,
     UmlClass,
 )
+from app.domain.uml.validation import find_generalization_admissibility_violation
 
 
 def execute_uml_command(document: ProjectDocument, command: UmlCommand) -> ProjectDocument:
@@ -105,6 +106,11 @@ def _build_document(
         uml_model = CanonicalUmlModel(
             elements=[element.model_copy(deep=True) for element in elements]
         )
+        violation = find_generalization_admissibility_violation(uml_model)
+        if violation is not None:
+            raise UmlCommandExecutionError(
+                UmlCommandErrorCode(violation.code.value), violation.message
+            )
         layouts = document.diagram_layout.nodes if node_layouts is None else node_layouts
         diagram_layout = DiagramLayout(
             nodes={

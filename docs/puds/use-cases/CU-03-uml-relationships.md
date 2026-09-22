@@ -155,3 +155,29 @@ git push -u origin feat/cu-03-uml-relationships
 ```
 
 No se ejecutaron commit ni push.
+
+## 22. Evolucion posterior - UML Editor Completeness Incremento 1
+
+El dominio soportado permanece limitado a `UmlAssociation`, `UmlAggregation`, `UmlComposition` y `UmlGeneralization`. `Dependency` y `Realization` no forman parte de este alcance.
+
+Association, aggregation y composition permiten autorrelaciones de classifier. Generalization no permite `sourceId == targetId` ni ciclos directos o indirectos. Estas dos invariantes se verifican en dominio al construir el resultado candidato de un comando, antes de que `UmlCommandBus` agregue un snapshot o que CU-07 lo persista.
+
+La validacion diagnostica sigue separada de la admisibilidad de comandos: solo `GENERALIZATION_SELF_REFERENCE` y `GENERALIZATION_CYCLE` bloquean esta ruta. Las demas reglas semanticas no cambian de comportamiento. Cambiar el tipo de una relacion continua requiriendo eliminarla y crear una nueva.
+
+## 23. Evolucion posterior - UML Editor Completeness Incremento 2
+
+La proyeccion Vue Flow representa association, aggregation, composition y generalization con sus markers UML. Association, aggregation y composition muestran multiplicidades independientes junto a source y target; generalization no muestra multiplicidades. Las tres relaciones que permiten autorrelacion usan un edge custom visible y seleccionable cuando ambos extremos pertenecen a la misma clase.
+
+El auto-layout ignora self-loops al construir el grafo de `d3-dag`, pero conserva las relaciones canónicas y las vuelve a renderizar. Dependency, Realization, roles/end names, navegabilidad y asociaciones n-arias permanecen fuera de alcance.
+
+### Evidencia final del Incremento 2
+
+Validacion automatica ejecutada el 2026-09-21:
+
+- backend: `pytest` 167 passed, 2 warnings externos conocidos; `python -m compileall app`, `ruff check .` y `pip check`: OK;
+- frontend: `npm run typecheck`: OK; `npm test`: 40 passed en 11 archivos; `npm run build`: OK;
+- integracion PostgreSQL: `python -m alembic check`: `No new upgrade operations detected.`;
+- gate global: `scripts/check.ps1`: OK;
+- integridad de diff: `git diff --check`: OK.
+
+No se agrega migracion: la proyeccion visual y el routing de self-loops se derivan exclusivamente de `ProjectDocument` y `DiagramLayout` existentes.

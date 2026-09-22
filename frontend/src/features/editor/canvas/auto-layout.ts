@@ -49,7 +49,7 @@ export function computeAutoLayout(
     }
 
     for (const relationship of document.umlModel.elements) {
-      if (relationship.kind !== 'class') {
+      if (relationship.kind !== 'class' && relationship.sourceId !== relationship.targetId) {
         graph.setEdge(relationship.sourceId, relationship.targetId)
       }
     }

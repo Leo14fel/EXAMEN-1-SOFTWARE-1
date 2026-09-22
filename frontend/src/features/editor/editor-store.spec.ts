@@ -174,4 +174,20 @@ describe('editor store', () => {
     expect(editorApi.getProject).toHaveBeenCalledOnce()
     expect(store.document).toEqual(document)
   })
+
+  it('expone el rechazo autoritativo de un ciclo de generalization', async () => {
+    vi.mocked(editorApi.getProject).mockResolvedValue(document)
+    vi.mocked(editorApi.executeProjectCommand).mockRejectedValue(
+      new EditorApiError('Inheritance cycle detected', 409, 'GENERALIZATION_CYCLE'),
+    )
+    const store = useEditorStore()
+    await store.openProject(document.id)
+
+    await expect(store.execute({ commandType: 'removeElement', elementId: document.id })).rejects.toThrow(
+      'Inheritance cycle detected',
+    )
+
+    expect(store.error).toBe('Inheritance cycle detected')
+    expect(editorApi.getProject).toHaveBeenCalledOnce()
+  })
 })

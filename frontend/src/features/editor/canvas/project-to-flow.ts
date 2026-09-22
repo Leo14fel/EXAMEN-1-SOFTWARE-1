@@ -12,6 +12,10 @@ export interface UmlClassNodeData {
 
 export interface UmlRelationshipEdgeData {
   kind: 'association' | 'aggregation' | 'composition' | 'generalization'
+  isSelfLoop: boolean
+  parallelOffset: number
+  sourceMultiplicityLabel?: string
+  targetMultiplicityLabel?: string
 }
 
 export interface ProjectFlowProjection {
@@ -33,30 +37,6 @@ function multiplicityLabel(value: UmlMultiplicity): string {
     return String(value.lower)
   }
   return `${value.lower}..${value.upper}`
-}
-
-function relationshipLabel(
-  relationship:
-    | (UmlRelationshipBase & {
-        kind: 'association' | 'aggregation' | 'composition'
-        sourceMultiplicity: UmlMultiplicity
-        targetMultiplicity: UmlMultiplicity
-      })
-    | (UmlRelationshipBase & { kind: 'generalization' }),
-): string {
-  if (relationship.kind === 'generalization') {
-    return 'generalización'
-  }
-
-  const kindLabel = {
-    association: 'asociación',
-    aggregation: 'agregación',
-    composition: 'composición',
-  }[relationship.kind]
-
-  return `${kindLabel} · ${multiplicityLabel(relationship.sourceMultiplicity)} → ${multiplicityLabel(
-    relationship.targetMultiplicity,
-  )}`
 }
 
 function markerStart(kind: UmlRelationshipEdgeData['kind']): string | undefined {
@@ -102,23 +82,48 @@ export function projectDocumentToFlow(
     }
   })
 
-  const edges: Edge<UmlRelationshipEdgeData>[] = document.umlModel.elements
-    .filter((element) => element.kind !== 'class')
-    .map((relationship) => ({
+  const relationships = document.umlModel.elements.filter(
+    (element): element is Exclude<typeof element, UmlClass> => element.kind !== 'class',
+  )
+  const relationshipCounts = new Map<string, number>()
+  for (const relationship of relationships) {
+    const key = `${relationship.sourceId}:${relationship.targetId}`
+    relationshipCounts.set(key, (relationshipCounts.get(key) ?? 0) + 1)
+  }
+  const relationshipIndexes = new Map<string, number>()
+
+  const edges: Edge<UmlRelationshipEdgeData>[] = relationships.map((relationship) => {
+    const key = `${relationship.sourceId}:${relationship.targetId}`
+    const index = relationshipIndexes.get(key) ?? 0
+    relationshipIndexes.set(key, index + 1)
+    const count = relationshipCounts.get(key) ?? 1
+    const isSelfLoop = relationship.sourceId === relationship.targetId
+
+    return {
       id: relationship.id,
       source: relationship.sourceId,
       target: relationship.targetId,
-      type: 'smoothstep',
-      label: relationshipLabel(relationship),
+      type: 'umlRelationship',
       markerStart: markerStart(relationship.kind),
       markerEnd: markerEnd(relationship.kind),
       selectable: true,
       selected: selectedElementId === relationship.id,
       focusable: true,
       deletable: false,
-      data: { kind: relationship.kind },
+      data: {
+        kind: relationship.kind,
+        isSelfLoop,
+        parallelOffset: index - (count - 1) / 2,
+        ...(relationship.kind === 'generalization'
+          ? {}
+          : {
+              sourceMultiplicityLabel: multiplicityLabel(relationship.sourceMultiplicity),
+              targetMultiplicityLabel: multiplicityLabel(relationship.targetMultiplicity),
+            }),
+      },
       class: `uml-flow-edge uml-flow-edge--${relationship.kind}`,
-    }))
+    }
+  })
 
   return { nodes, edges }
 }

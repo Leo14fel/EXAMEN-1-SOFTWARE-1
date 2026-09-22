@@ -4,6 +4,7 @@ import type { Node } from '@vue-flow/core'
 import { useVueFlow, VueFlow } from '@vue-flow/core'
 import type { DiagramNodeLayout, ProjectDocument } from '../types'
 import UmlClassNode from './UmlClassNode.vue'
+import UmlRelationshipEdge from './UmlRelationshipEdge.vue'
 import {
   DEFAULT_NODE_HEIGHT,
   DEFAULT_NODE_WIDTH,
@@ -135,6 +136,9 @@ defineExpose({ fitContent })
     >
       <template #node-umlClass="nodeProps">
         <UmlClassNode :data="nodeProps.data" :selected="nodeProps.selected" />
+      </template>
+      <template #edge-umlRelationship="edgeProps">
+        <UmlRelationshipEdge v-bind="edgeProps" />
       </template>
     </VueFlow>
 

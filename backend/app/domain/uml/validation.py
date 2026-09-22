@@ -70,6 +70,29 @@ def validate_uml_model(model: CanonicalUmlModel) -> UmlValidationResult:
     return UmlValidationResult(diagnostics=diagnostics)
 
 
+def find_generalization_admissibility_violation(
+    model: CanonicalUmlModel,
+) -> UmlDiagnostic | None:
+    """Return the first inheritance invariant that commands must never persist."""
+    diagnostics: list[UmlDiagnostic] = []
+    _validate_generalizations(
+        [element for element in model.elements if isinstance(element, UmlGeneralization)],
+        diagnostics,
+    )
+    return next(
+        (
+            diagnostic
+            for diagnostic in diagnostics
+            if diagnostic.code
+            in {
+                UmlDiagnosticCode.GENERALIZATION_SELF_REFERENCE,
+                UmlDiagnosticCode.GENERALIZATION_CYCLE,
+            }
+        ),
+        None,
+    )
+
+
 def _validate_duplicate_class_names(
     classes: list[UmlClass], diagnostics: list[UmlDiagnostic]
 ) -> None:

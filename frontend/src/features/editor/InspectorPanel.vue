@@ -52,6 +52,12 @@ const selectedElement = computed(() =>
   props.document.umlModel.elements.find((element) => element.id === props.selectedElementId),
 )
 
+const relationshipTargetClasses = computed(() => {
+  const form = relationshipForm.value
+  if (!form || form.kind !== 'generalization') return classes.value
+  return classes.value.filter((umlClass) => umlClass.id !== form.sourceId)
+})
+
 const classHasRelationships = computed(() => {
   if (!classDraft.value) return false
   return props.document.umlModel.elements.some(
@@ -92,7 +98,7 @@ const relationshipTargetMultiplicity = computed(() => {
 const validRelationship = computed(() => {
   const form = relationshipForm.value
   if (!form || !form.sourceId || !form.targetId) return false
-  if (form.kind === 'generalization') return true
+  if (form.kind === 'generalization') return form.sourceId !== form.targetId
   return relationshipSourceMultiplicity.value !== null && relationshipTargetMultiplicity.value !== null
 })
 
@@ -522,7 +528,7 @@ function relationshipTitle(kind: UmlRelationship['kind']): string {
       />
       <v-select
         v-model="relationshipForm.targetId"
-        :items="classes"
+        :items="relationshipTargetClasses"
         item-title="name"
         item-value="id"
         label="Clase destino"
@@ -559,7 +565,7 @@ function relationshipTitle(kind: UmlRelationship['kind']): string {
         density="compact"
         class="mt-2"
       >
-        Revisa clases y multiplicidades.
+        Revisa clases distintas para herencia y multiplicidades cuando correspondan.
       </v-alert>
 
       <div class="inspector-actions">
