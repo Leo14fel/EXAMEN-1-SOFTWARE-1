@@ -1,8 +1,9 @@
+import re
 from datetime import datetime
 from threading import Lock
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import Field, JsonValue
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -26,6 +27,7 @@ from app.db.users import UserRecord, get_user_by_email, get_user_by_id
 from app.domain.uml.command_bus import UmlCommandBus
 from app.domain.uml.commands import UmlCommand, UmlCommandExecutionError
 from app.domain.uml.models import DomainModel, ProjectDocument
+from app.interoperability.xmi.exporter import export_project_document
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 database_session = Depends(get_db_session)
@@ -267,6 +269,21 @@ def list_persisted_projects(
     return [_summary(record, user.id, session) for record in list_projects(session, user.id)]
 
 
+@router.get("/{project_id}/export/xmi")
+def export_project_xmi(
+    project_id: UUID,
+    user: UserRecord = current_user_dependency,
+    session: Session = database_session,
+) -> Response:
+    document = _project_access(session, project_id, user).document
+    filename = _xmi_filename(document)
+    return Response(
+        content=export_project_document(document),
+        media_type="application/xml",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
 @router.get("/{project_id}", response_model=ProjectDocument)
 def get_persisted_project(
     project_id: UUID,
@@ -274,6 +291,12 @@ def get_persisted_project(
     session: Session = database_session,
 ) -> ProjectDocument:
     return _project_access(session, project_id, user).document
+
+
+def _xmi_filename(document: ProjectDocument) -> str:
+    name = document.metadata.get("name")
+    safe_name = re.sub(r"[^A-Za-z0-9._-]+", "_", name.strip()) if isinstance(name, str) else ""
+    return f"{safe_name.strip('._') or f'project_{document.id.hex[:8]}'}.xmi"
 
 
 def _collaborator_response(

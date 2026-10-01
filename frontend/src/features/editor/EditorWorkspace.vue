@@ -1,11 +1,8 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import { storeToRefs } from 'pinia'
-import { useEditorStore } from './editor-store'
-import {
-  createUmlClass,
-  nextClassName,
-} from './editor-elements'
+import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { storeToRefs } from "pinia";
+import { useEditorStore } from "./editor-store";
+import { createUmlClass, nextClassName } from "./editor-elements";
 import type {
   DiagramNodeLayout,
   ProjectSummary,
@@ -13,46 +10,60 @@ import type {
   UmlCommand,
   ProjectRole,
   UmlRelationship,
-} from './types'
-import { computeAutoLayout } from './canvas/auto-layout'
-import UmlCanvas from './canvas/UmlCanvas.vue'
-import InspectorPanel from './InspectorPanel.vue'
-import RelationshipDialog from './RelationshipDialog.vue'
-import { useAuthStore } from '../auth/auth-store'
+} from "./types";
+import { computeAutoLayout } from "./canvas/auto-layout";
+import UmlCanvas from "./canvas/UmlCanvas.vue";
+import InspectorPanel from "./InspectorPanel.vue";
+import RelationshipDialog from "./RelationshipDialog.vue";
+import { useAuthStore } from "../auth/auth-store";
+import { downloadProjectXmi } from "./editor-api";
 
-const editorStore = useEditorStore()
-const authStore = useAuthStore()
-const { document, loading, error, projectId, projects, canUndo, canRedo, effectiveRole, collaborators } = storeToRefs(editorStore)
+const editorStore = useEditorStore();
+const authStore = useAuthStore();
+const {
+  document,
+  loading,
+  error,
+  projectId,
+  projects,
+  canUndo,
+  canRedo,
+  effectiveRole,
+  collaborators,
+} = storeToRefs(editorStore);
 
-const selectedElementId = ref<string | null>(null)
-const relationshipDialogOpen = ref(false)
-const projectMenuOpen = ref(false)
-const createProjectDialogOpen = ref(false)
-const newProjectName = ref('')
-const batchBusy = ref(false)
-const collaboratorsDialogOpen = ref(false)
-const collaboratorEmail = ref('')
-const collaboratorRole = ref<ProjectRole>('EDITOR')
-const canvasRef = ref<{ fitContent: () => void } | null>(null)
+const selectedElementId = ref<string | null>(null);
+const relationshipDialogOpen = ref(false);
+const projectMenuOpen = ref(false);
+const createProjectDialogOpen = ref(false);
+const newProjectName = ref("");
+const batchBusy = ref(false);
+const collaboratorsDialogOpen = ref(false);
+const collaboratorEmail = ref("");
+const collaboratorRole = ref<ProjectRole>("EDITOR");
+const canvasRef = ref<{ fitContent: () => void } | null>(null);
 
-const shortProjectId = computed(() => projectId.value?.slice(0, 8) ?? 'sin proyecto')
+const shortProjectId = computed(
+  () => projectId.value?.slice(0, 8) ?? "sin proyecto",
+);
 const projectName = computed(() => {
-  const name = document.value?.metadata.name
-  return typeof name === 'string' && name.trim() ? name : 'Proyecto sin nombre'
-})
-const revision = computed(() => document.value?.revision ?? 0)
-const busy = computed(() => loading.value || batchBusy.value)
-const canEdit = computed(() => effectiveRole.value === 'EDITOR')
-const isOwner = computed(() => document.value?.ownerId === authStore.user?.id)
-const classes = computed(() =>
-  document.value?.umlModel.elements.filter(
-    (element): element is UmlClass => element.kind === 'class',
-  ) ?? [],
-)
+  const name = document.value?.metadata.name;
+  return typeof name === "string" && name.trim() ? name : "Proyecto sin nombre";
+});
+const revision = computed(() => document.value?.revision ?? 0);
+const busy = computed(() => loading.value || batchBusy.value);
+const canEdit = computed(() => effectiveRole.value === "EDITOR");
+const isOwner = computed(() => document.value?.ownerId === authStore.user?.id);
+const classes = computed(
+  () =>
+    document.value?.umlModel.elements.filter(
+      (element): element is UmlClass => element.kind === "class",
+    ) ?? [],
+);
 
 async function loadProjects(): Promise<void> {
   try {
-    await editorStore.loadProjects()
+    await editorStore.loadProjects();
   } catch {
     // El store expone el mensaje en `error`.
   }
@@ -60,9 +71,9 @@ async function loadProjects(): Promise<void> {
 
 async function openProject(project: ProjectSummary): Promise<void> {
   try {
-    selectedElementId.value = null
-    await editorStore.openProject(project.id)
-    projectMenuOpen.value = false
+    selectedElementId.value = null;
+    await editorStore.openProject(project.id);
+    projectMenuOpen.value = false;
   } catch {
     // El store expone el mensaje en `error`.
   }
@@ -70,26 +81,32 @@ async function openProject(project: ProjectSummary): Promise<void> {
 
 async function openCollaborators(): Promise<void> {
   try {
-    await editorStore.loadCollaborators()
-    collaboratorsDialogOpen.value = true
+    await editorStore.loadCollaborators();
+    collaboratorsDialogOpen.value = true;
   } catch {
     // El store expone el mensaje en `error`.
   }
 }
 
 async function addCollaborator(): Promise<void> {
-  if (!collaboratorEmail.value.trim()) return
+  if (!collaboratorEmail.value.trim()) return;
   try {
-    await editorStore.addCollaborator(collaboratorEmail.value.trim(), collaboratorRole.value)
-    collaboratorEmail.value = ''
+    await editorStore.addCollaborator(
+      collaboratorEmail.value.trim(),
+      collaboratorRole.value,
+    );
+    collaboratorEmail.value = "";
   } catch {
     // El store expone el mensaje en `error`.
   }
 }
 
-async function changeCollaboratorRole(userId: string, role: ProjectRole): Promise<void> {
+async function changeCollaboratorRole(
+  userId: string,
+  role: ProjectRole,
+): Promise<void> {
   try {
-    await editorStore.updateCollaborator(userId, role)
+    await editorStore.updateCollaborator(userId, role);
   } catch {
     // El store expone el mensaje en `error`.
   }
@@ -97,138 +114,160 @@ async function changeCollaboratorRole(userId: string, role: ProjectRole): Promis
 
 async function removeCollaborator(userId: string): Promise<void> {
   try {
-    await editorStore.removeCollaborator(userId)
+    await editorStore.removeCollaborator(userId);
   } catch {
     // El store expone el mensaje en `error`.
   }
 }
 
 async function createProject(): Promise<void> {
-  const name = newProjectName.value.trim() || 'Proyecto sin nombre'
+  const name = newProjectName.value.trim() || "Proyecto sin nombre";
   try {
-    selectedElementId.value = null
-    await editorStore.createProject(name)
-    newProjectName.value = ''
-    createProjectDialogOpen.value = false
+    selectedElementId.value = null;
+    await editorStore.createProject(name);
+    newProjectName.value = "";
+    createProjectDialogOpen.value = false;
   } catch {
     // El store expone el mensaje en `error`.
   }
 }
 
+async function downloadXmi(): Promise<void> {
+  if (!projectId.value || busy.value) return;
+  try {
+    const { blob, filename } = await downloadProjectXmi(projectId.value);
+    const url = URL.createObjectURL(blob);
+    const link = window.document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  } catch (error) {
+    editorStore.error =
+      error instanceof Error ? error.message : "No se pudo exportar el XMI.";
+  }
+}
+
 async function executeCommand(command: UmlCommand): Promise<boolean> {
   try {
-    await editorStore.execute(command)
-    return true
+    await editorStore.execute(command);
+    return true;
   } catch {
-    return false
+    return false;
   }
 }
 
 async function createClass(): Promise<void> {
-  if (!document.value || busy.value || !canEdit.value) return
-  const element = createUmlClass(nextClassName(document.value))
+  if (!document.value || busy.value || !canEdit.value) return;
+  const element = createUmlClass(nextClassName(document.value));
 
   if (
     await executeCommand({
-      commandType: 'addElement',
+      commandType: "addElement",
       element,
     })
   ) {
-    selectedElementId.value = element.id
+    selectedElementId.value = element.id;
   }
 }
 
-async function createRelationship(relationship: UmlRelationship): Promise<void> {
-  if (!document.value || busy.value || !canEdit.value) return
+async function createRelationship(
+  relationship: UmlRelationship,
+): Promise<void> {
+  if (!document.value || busy.value || !canEdit.value) return;
 
   if (
     await executeCommand({
-      commandType: 'addElement',
+      commandType: "addElement",
       element: relationship,
     })
   ) {
-    selectedElementId.value = relationship.id
+    selectedElementId.value = relationship.id;
   }
 }
 
 async function handleMoveNode(payload: {
-  elementId: string
-  layout: DiagramNodeLayout
+  elementId: string;
+  layout: DiagramNodeLayout;
 }): Promise<void> {
-  if (!canEdit.value) return
+  if (!canEdit.value) return;
   await executeCommand({
-    commandType: 'setNodeLayout',
+    commandType: "setNodeLayout",
     elementId: payload.elementId,
     layout: payload.layout,
-  })
+  });
 }
 
 async function handleInspectorCommand(command: UmlCommand): Promise<void> {
-  const removedId = command.commandType === 'removeElement' ? command.elementId : null
-  const ok = await executeCommand(command)
+  const removedId =
+    command.commandType === "removeElement" ? command.elementId : null;
+  const ok = await executeCommand(command);
   if (ok && removedId === selectedElementId.value) {
-    selectedElementId.value = null
+    selectedElementId.value = null;
   }
 }
 
 async function undo(): Promise<void> {
-  if (!canEdit.value || !canUndo.value || busy.value) return
+  if (!canEdit.value || !canUndo.value || busy.value) return;
   try {
-    await editorStore.undo()
-    ensureValidSelection()
+    await editorStore.undo();
+    ensureValidSelection();
   } catch {
     // El store ya expone el error.
   }
 }
 
 async function redo(): Promise<void> {
-  if (!canEdit.value || !canRedo.value || busy.value) return
+  if (!canEdit.value || !canRedo.value || busy.value) return;
   try {
-    await editorStore.redo()
-    ensureValidSelection()
+    await editorStore.redo();
+    ensureValidSelection();
   } catch {
     // El store ya expone el error.
   }
 }
 
 async function autoLayout(): Promise<void> {
-  if (!document.value || !canEdit.value || classes.value.length === 0 || busy.value) return
+  if (
+    !document.value ||
+    !canEdit.value ||
+    classes.value.length === 0 ||
+    busy.value
+  )
+    return;
 
-  batchBusy.value = true
+  batchBusy.value = true;
   try {
-    const layouts = computeAutoLayout(document.value)
+    const layouts = computeAutoLayout(document.value);
 
     for (const [elementId, layout] of Object.entries(layouts)) {
       await editorStore.execute({
-        commandType: 'setNodeLayout',
+        commandType: "setNodeLayout",
         elementId,
         layout,
-      })
+      });
     }
 
-    await nextTick()
-    canvasRef.value?.fitContent()
+    await nextTick();
+    canvasRef.value?.fitContent();
   } catch {
     // El store ya expone el error si un comando falla.
   } finally {
-    batchBusy.value = false
+    batchBusy.value = false;
   }
 }
 
 function ensureValidSelection(): void {
-  if (!selectedElementId.value || !document.value) return
+  if (!selectedElementId.value || !document.value) return;
   const stillExists = document.value.umlModel.elements.some(
     (element) => element.id === selectedElementId.value,
-  )
-  if (!stillExists) selectedElementId.value = null
+  );
+  if (!stillExists) selectedElementId.value = null;
 }
 
-watch(
-  () => document.value?.revision,
-  ensureValidSelection,
-)
+watch(() => document.value?.revision, ensureValidSelection);
 
-onMounted(loadProjects)
+onMounted(loadProjects);
 </script>
 
 <template>
@@ -244,7 +283,12 @@ onMounted(loadProjects)
           <div class="editor-toolbar__status">
             <v-menu v-model="projectMenuOpen" :close-on-content-click="false">
               <template #activator="{ props }">
-                <v-btn v-bind="props" size="small" variant="tonal" prepend-icon="mdi-folder-open-outline">
+                <v-btn
+                  v-bind="props"
+                  size="small"
+                  variant="tonal"
+                  prepend-icon="mdi-folder-open-outline"
+                >
                   Proyectos
                 </v-btn>
               </template>
@@ -253,12 +297,19 @@ onMounted(loadProjects)
                   <v-list-item
                     v-for="project in projects"
                     :key="project.id"
-                    :title="typeof project.metadata.name === 'string' ? project.metadata.name : 'Proyecto sin nombre'"
+                    :title="
+                      typeof project.metadata.name === 'string'
+                        ? project.metadata.name
+                        : 'Proyecto sin nombre'
+                    "
                     :subtitle="`Revisión ${project.revision}`"
                     prepend-icon="mdi-file-document-outline"
                     @click="openProject(project)"
                   />
-                  <v-list-item v-if="projects.length === 0" title="No hay proyectos guardados" />
+                  <v-list-item
+                    v-if="projects.length === 0"
+                    title="No hay proyectos guardados"
+                  />
                 </v-list>
               </v-card>
             </v-menu>
@@ -278,13 +329,38 @@ onMounted(loadProjects)
             <v-chip size="small" variant="tonal" color="primary">
               Revisión {{ revision }}
             </v-chip>
-            <v-chip v-if="effectiveRole" size="small" variant="tonal" :color="canEdit ? 'secondary' : 'warning'">
-              {{ canEdit ? 'Editor' : 'Solo lectura' }}
+            <v-chip
+              v-if="effectiveRole"
+              size="small"
+              variant="tonal"
+              :color="canEdit ? 'secondary' : 'warning'"
+            >
+              {{ canEdit ? "Editor" : "Solo lectura" }}
             </v-chip>
-            <v-btn v-if="isOwner" size="small" variant="text" prepend-icon="mdi-account-group-outline" @click="openCollaborators">
+            <v-btn
+              v-if="isOwner"
+              size="small"
+              variant="text"
+              prepend-icon="mdi-account-group-outline"
+              @click="openCollaborators"
+            >
               Colaboradores
             </v-btn>
-            <v-btn size="small" variant="text" prepend-icon="mdi-logout" @click="authStore.logout">
+            <v-btn
+              size="small"
+              variant="text"
+              prepend-icon="mdi-download-outline"
+              :disabled="busy || !projectId"
+              @click="downloadXmi"
+            >
+              Descargar XMI
+            </v-btn>
+            <v-btn
+              size="small"
+              variant="text"
+              prepend-icon="mdi-logout"
+              @click="authStore.logout"
+            >
               Salir
             </v-btn>
           </div>
@@ -304,7 +380,9 @@ onMounted(loadProjects)
 
         <div v-if="loading && !document" class="editor-loading">
           <v-progress-circular indeterminate color="primary" size="48" />
-          <span class="text-body-2 text-medium-emphasis">Cargando proyectos...</span>
+          <span class="text-body-2 text-medium-emphasis"
+            >Cargando proyectos...</span
+          >
         </div>
 
         <template v-else-if="document">
@@ -361,7 +439,9 @@ onMounted(loadProjects)
           <div class="editor-grid">
             <section class="toolbox-panel">
               <div class="text-overline text-primary">Toolbox</div>
-              <div class="text-subtitle-2 font-weight-bold mb-3">Modelado manual</div>
+              <div class="text-subtitle-2 font-weight-bold mb-3">
+                Modelado manual
+              </div>
 
               <v-list density="compact" bg-color="transparent">
                 <v-list-item
@@ -383,8 +463,9 @@ onMounted(loadProjects)
               <v-divider class="my-4" />
 
               <div class="text-caption text-medium-emphasis">
-                Arrastra clases para guardar su posición. Selecciona un elemento para editarlo en el
-                inspector. Las mutaciones pasan por el Command Bus del backend.
+                Arrastra clases para guardar su posición. Selecciona un elemento
+                para editarlo en el inspector. Las mutaciones pasan por el
+                Command Bus del backend.
               </div>
 
               <v-progress-linear
@@ -422,8 +503,15 @@ onMounted(loadProjects)
         </template>
 
         <div v-else-if="!error" class="editor-loading">
-          <span class="text-body-2 text-medium-emphasis">Abra o cree un proyecto para comenzar.</span>
-          <v-btn color="primary" variant="flat" prepend-icon="mdi-plus" @click="createProjectDialogOpen = true">
+          <span class="text-body-2 text-medium-emphasis"
+            >Abra o cree un proyecto para comenzar.</span
+          >
+          <v-btn
+            color="primary"
+            variant="flat"
+            prepend-icon="mdi-plus"
+            @click="createProjectDialogOpen = true"
+          >
             Crear proyecto
           </v-btn>
         </div>
@@ -441,8 +529,15 @@ onMounted(loadProjects)
             </v-card-text>
             <v-card-actions>
               <v-spacer />
-              <v-btn variant="text" @click="createProjectDialogOpen = false">Cancelar</v-btn>
-              <v-btn color="primary" variant="flat" :disabled="busy" @click="createProject">
+              <v-btn variant="text" @click="createProjectDialogOpen = false"
+                >Cancelar</v-btn
+              >
+              <v-btn
+                color="primary"
+                variant="flat"
+                :disabled="busy"
+                @click="createProject"
+              >
                 Crear
               </v-btn>
             </v-card-actions>
@@ -454,12 +549,32 @@ onMounted(loadProjects)
             <v-card-title>Colaboradores</v-card-title>
             <v-card-text>
               <div class="collaborator-form">
-                <v-text-field v-model="collaboratorEmail" label="Correo del usuario" density="compact" hide-details />
-                <v-select v-model="collaboratorRole" :items="['EDITOR', 'VIEWER']" label="Rol" density="compact" hide-details />
-                <v-btn color="primary" :disabled="busy || !collaboratorEmail.trim()" @click="addCollaborator">Agregar</v-btn>
+                <v-text-field
+                  v-model="collaboratorEmail"
+                  label="Correo del usuario"
+                  density="compact"
+                  hide-details
+                />
+                <v-select
+                  v-model="collaboratorRole"
+                  :items="['EDITOR', 'VIEWER']"
+                  label="Rol"
+                  density="compact"
+                  hide-details
+                />
+                <v-btn
+                  color="primary"
+                  :disabled="busy || !collaboratorEmail.trim()"
+                  @click="addCollaborator"
+                  >Agregar</v-btn
+                >
               </div>
               <v-list density="compact" class="mt-4">
-                <v-list-item v-for="collaborator in collaborators" :key="collaborator.userId" :title="collaborator.email">
+                <v-list-item
+                  v-for="collaborator in collaborators"
+                  :key="collaborator.userId"
+                  :title="collaborator.email"
+                >
                   <template #append>
                     <v-select
                       :model-value="collaborator.role"
@@ -467,15 +582,32 @@ onMounted(loadProjects)
                       density="compact"
                       hide-details
                       style="width: 120px"
-                      @update:model-value="changeCollaboratorRole(collaborator.userId, $event as ProjectRole)"
+                      @update:model-value="
+                        changeCollaboratorRole(
+                          collaborator.userId,
+                          $event as ProjectRole,
+                        )
+                      "
                     />
-                    <v-btn icon="mdi-account-remove-outline" variant="text" :disabled="busy" @click="removeCollaborator(collaborator.userId)" />
+                    <v-btn
+                      icon="mdi-account-remove-outline"
+                      variant="text"
+                      :disabled="busy"
+                      @click="removeCollaborator(collaborator.userId)"
+                    />
                   </template>
                 </v-list-item>
-                <v-list-item v-if="collaborators.length === 0" title="No hay colaboradores" />
+                <v-list-item
+                  v-if="collaborators.length === 0"
+                  title="No hay colaboradores"
+                />
               </v-list>
             </v-card-text>
-            <v-card-actions><v-spacer /><v-btn @click="collaboratorsDialogOpen = false">Cerrar</v-btn></v-card-actions>
+            <v-card-actions
+              ><v-spacer /><v-btn @click="collaboratorsDialogOpen = false"
+                >Cerrar</v-btn
+              ></v-card-actions
+            >
           </v-card>
         </v-dialog>
       </div>
@@ -487,7 +619,11 @@ onMounted(loadProjects)
 .editor-main {
   min-height: 100vh;
   background:
-    radial-gradient(circle at top left, rgba(53, 208, 186, 0.08), transparent 32%),
+    radial-gradient(
+      circle at top left,
+      rgba(53, 208, 186, 0.08),
+      transparent 32%
+    ),
     #0f1720;
 }
 

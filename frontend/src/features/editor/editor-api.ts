@@ -1,4 +1,4 @@
-import { authenticatedFetch } from '../../services/api'
+import { authenticatedFetch } from "../../services/api";
 import type {
   ProjectCollaborator,
   ProjectDocument,
@@ -6,13 +6,13 @@ import type {
   ProjectRole,
   ProjectSummary,
   UmlCommand,
-} from './types'
+} from "./types";
 
 interface ApiErrorPayload {
   detail?: {
-    code?: string
-    message?: string
-  }
+    code?: string;
+    message?: string;
+  };
 }
 
 export class EditorApiError extends Error {
@@ -21,43 +21,73 @@ export class EditorApiError extends Error {
     readonly status: number,
     readonly code?: string,
   ) {
-    super(message)
-    this.name = 'EditorApiError'
+    super(message);
+    this.name = "EditorApiError";
   }
 }
 
 async function editorRequest<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await authenticatedFetch(path, init)
+  const response = await authenticatedFetch(path, init);
   if (!response.ok) {
-    let payload: ApiErrorPayload | null = null
+    let payload: ApiErrorPayload | null = null;
     try {
-      payload = (await response.json()) as ApiErrorPayload
+      payload = (await response.json()) as ApiErrorPayload;
     } catch {
-      payload = null
+      payload = null;
     }
     throw new EditorApiError(
       payload?.detail?.message ?? `Backend respondió ${response.status}`,
       response.status,
       payload?.detail?.code,
-    )
+    );
   }
-  return response.status === 204 ? (undefined as T) : (response.json() as Promise<T>)
+  return response.status === 204
+    ? (undefined as T)
+    : (response.json() as Promise<T>);
 }
 
-export function createProject(metadata: Record<string, string>): Promise<ProjectDocument> {
-  return editorRequest('/projects', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+export function createProject(
+  metadata: Record<string, string>,
+): Promise<ProjectDocument> {
+  return editorRequest("/projects", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ metadata }),
-  })
+  });
 }
 
 export function listProjects(): Promise<ProjectSummary[]> {
-  return editorRequest('/projects')
+  return editorRequest("/projects");
 }
 
 export function getProject(projectId: string): Promise<ProjectDocument> {
-  return editorRequest(`/projects/${projectId}`)
+  return editorRequest(`/projects/${projectId}`);
+}
+
+export async function downloadProjectXmi(
+  projectId: string,
+): Promise<{ blob: Blob; filename: string }> {
+  const response = await authenticatedFetch(
+    `/projects/${projectId}/export/xmi`,
+  );
+  if (!response.ok) {
+    let payload: ApiErrorPayload | null = null;
+    try {
+      payload = (await response.json()) as ApiErrorPayload;
+    } catch {
+      payload = null;
+    }
+    throw new EditorApiError(
+      payload?.detail?.message ?? `Backend respondió ${response.status}`,
+      response.status,
+      payload?.detail?.code,
+    );
+  }
+  const filename =
+    response.headers
+      .get("Content-Disposition")
+      ?.match(/filename="?([^";]+)"?/i)?.[1] ?? "project.xmi";
+  return { blob: await response.blob(), filename };
 }
 
 export function executeProjectCommand(
@@ -66,30 +96,38 @@ export function executeProjectCommand(
   command: UmlCommand,
 ): Promise<ProjectEditorState> {
   return editorRequest(`/projects/${projectId}/commands`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ baseRevision, command }),
-  })
+  });
 }
 
-export function undoProject(projectId: string, baseRevision: number): Promise<ProjectEditorState> {
+export function undoProject(
+  projectId: string,
+  baseRevision: number,
+): Promise<ProjectEditorState> {
   return editorRequest(`/projects/${projectId}/undo`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ baseRevision }),
-  })
+  });
 }
 
-export function redoProject(projectId: string, baseRevision: number): Promise<ProjectEditorState> {
+export function redoProject(
+  projectId: string,
+  baseRevision: number,
+): Promise<ProjectEditorState> {
   return editorRequest(`/projects/${projectId}/redo`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ baseRevision }),
-  })
+  });
 }
 
-export function listCollaborators(projectId: string): Promise<ProjectCollaborator[]> {
-  return editorRequest(`/projects/${projectId}/collaborators`)
+export function listCollaborators(
+  projectId: string,
+): Promise<ProjectCollaborator[]> {
+  return editorRequest(`/projects/${projectId}/collaborators`);
 }
 
 export function addCollaborator(
@@ -98,10 +136,10 @@ export function addCollaborator(
   role: ProjectRole,
 ): Promise<ProjectCollaborator> {
   return editorRequest(`/projects/${projectId}/collaborators`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, role }),
-  })
+  });
 }
 
 export function updateCollaborator(
@@ -109,15 +147,24 @@ export function updateCollaborator(
   collaboratorId: string,
   role: ProjectRole,
 ): Promise<ProjectCollaborator> {
-  return editorRequest(`/projects/${projectId}/collaborators/${collaboratorId}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ role }),
-  })
+  return editorRequest(
+    `/projects/${projectId}/collaborators/${collaboratorId}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role }),
+    },
+  );
 }
 
-export async function removeCollaborator(projectId: string, collaboratorId: string): Promise<void> {
-  await editorRequest<undefined>(`/projects/${projectId}/collaborators/${collaboratorId}`, {
-    method: 'DELETE',
-  })
+export async function removeCollaborator(
+  projectId: string,
+  collaboratorId: string,
+): Promise<void> {
+  await editorRequest<undefined>(
+    `/projects/${projectId}/collaborators/${collaboratorId}`,
+    {
+      method: "DELETE",
+    },
+  );
 }

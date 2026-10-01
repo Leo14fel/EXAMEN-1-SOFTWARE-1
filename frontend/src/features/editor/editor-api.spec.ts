@@ -1,47 +1,56 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createProject,
+  downloadProjectXmi,
   EditorApiError,
   executeProjectCommand,
   getProject,
   listProjects,
   redoProject,
   undoProject,
-} from './editor-api'
-import type { ProjectDocument, ProjectEditorState, UmlClass } from './types'
+} from "./editor-api";
+import type { ProjectDocument, ProjectEditorState, UmlClass } from "./types";
 
 const document: ProjectDocument = {
-  id: '11111111-1111-1111-1111-111111111111',
-  metadata: { name: 'Ventas' },
-  ownerId: '22222222-2222-2222-2222-222222222222',
+  id: "11111111-1111-1111-1111-111111111111",
+  metadata: { name: "Ventas" },
+  ownerId: "22222222-2222-2222-2222-222222222222",
   revision: 3,
-  createdAt: '2026-09-15T12:00:00Z',
-  updatedAt: '2026-09-15T12:01:00Z',
+  createdAt: "2026-09-15T12:00:00Z",
+  updatedAt: "2026-09-15T12:01:00Z",
   umlModel: { elements: [] },
   diagramLayout: { nodes: {} },
-}
+};
 
-const editorState: ProjectEditorState = { document, canUndo: true, canRedo: false }
+const editorState: ProjectEditorState = {
+  document,
+  canUndo: true,
+  canRedo: false,
+};
 
 afterEach(() => {
-  vi.unstubAllGlobals()
-})
+  vi.unstubAllGlobals();
+});
 
-describe('editor api', () => {
-  it('crea proyectos sin enviar ownerId', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(document), { status: 201 }))
-    vi.stubGlobal('fetch', fetchMock)
+describe("editor api", () => {
+  it("crea proyectos sin enviar ownerId", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify(document), { status: 201 }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
 
-    await expect(createProject({ name: 'Ventas' })).resolves.toEqual(document)
+    await expect(createProject({ name: "Ventas" })).resolves.toEqual(document);
 
-    expect(fetchMock).toHaveBeenCalledWith('http://localhost:8000/projects', {
-      method: 'POST',
+    expect(fetchMock).toHaveBeenCalledWith("http://localhost:8000/projects", {
+      method: "POST",
       headers: expect.any(Headers),
-      body: JSON.stringify({ metadata: { name: 'Ventas' } }),
-    })
-  })
+      body: JSON.stringify({ metadata: { name: "Ventas" } }),
+    });
+  });
 
-  it('lista y abre proyectos persistentes', async () => {
+  it("lista y abre proyectos persistentes", async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(
@@ -59,86 +68,128 @@ describe('editor api', () => {
           { status: 200 },
         ),
       )
-      .mockResolvedValueOnce(new Response(JSON.stringify(document), { status: 200 }))
-    vi.stubGlobal('fetch', fetchMock)
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify(document), { status: 200 }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
 
-    await expect(listProjects()).resolves.toHaveLength(1)
-    await expect(getProject(document.id)).resolves.toEqual(document)
+    await expect(listProjects()).resolves.toHaveLength(1);
+    await expect(getProject(document.id)).resolves.toEqual(document);
 
-    expect(fetchMock).toHaveBeenNthCalledWith(1, 'http://localhost:8000/projects', {
-      headers: expect.any(Headers),
-    })
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      1,
+      "http://localhost:8000/projects",
+      {
+        headers: expect.any(Headers),
+      },
+    );
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
       `http://localhost:8000/projects/${document.id}`,
       { headers: expect.any(Headers) },
-    )
-  })
+    );
+  });
 
-  it('envía comandos con la revision actual', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(editorState), { status: 200 }))
-    vi.stubGlobal('fetch', fetchMock)
+  it("descarga XMI por el cliente autenticado y conserva el nombre del servidor", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response("<xmi:XMI />", {
+        status: 200,
+        headers: { "Content-Disposition": 'attachment; filename="Ventas.xmi"' },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    const download = await downloadProjectXmi(document.id);
+
+    expect(download.filename).toBe("Ventas.xmi");
+    expect(await download.blob.text()).toBe("<xmi:XMI />");
+    expect(fetchMock).toHaveBeenCalledWith(
+      `http://localhost:8000/projects/${document.id}/export/xmi`,
+      { headers: expect.any(Headers) },
+    );
+  });
+
+  it("envía comandos con la revision actual", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        new Response(JSON.stringify(editorState), { status: 200 }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
     const umlClass: UmlClass = {
-      id: '33333333-3333-3333-3333-333333333333',
-      kind: 'class',
-      name: 'Cliente',
-      visibility: 'public',
+      id: "33333333-3333-3333-3333-333333333333",
+      kind: "class",
+      name: "Cliente",
+      visibility: "public",
       attributes: [],
       operations: [],
-    }
+    };
 
     await executeProjectCommand(document.id, document.revision, {
-      commandType: 'addElement',
+      commandType: "addElement",
       element: umlClass,
-    })
+    });
 
     expect(fetchMock).toHaveBeenCalledWith(
       `http://localhost:8000/projects/${document.id}/commands`,
       expect.objectContaining({
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify({
           baseRevision: document.revision,
-          command: { commandType: 'addElement', element: umlClass },
+          command: { commandType: "addElement", element: umlClass },
         }),
       }),
-    )
-  })
+    );
+  });
 
-  it('envía Undo y Redo con la revision actual', async () => {
+  it("envía Undo y Redo con la revision actual", async () => {
     const fetchMock = vi
       .fn()
-      .mockImplementation(() => Promise.resolve(new Response(JSON.stringify(editorState), { status: 200 })))
-    vi.stubGlobal('fetch', fetchMock)
+      .mockImplementation(() =>
+        Promise.resolve(
+          new Response(JSON.stringify(editorState), { status: 200 }),
+        ),
+      );
+    vi.stubGlobal("fetch", fetchMock);
 
-    await undoProject(document.id, document.revision)
-    await redoProject(document.id, document.revision)
+    await undoProject(document.id, document.revision);
+    await redoProject(document.id, document.revision);
 
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
       `http://localhost:8000/projects/${document.id}/undo`,
-      expect.objectContaining({ body: JSON.stringify({ baseRevision: document.revision }) }),
-    )
+      expect.objectContaining({
+        body: JSON.stringify({ baseRevision: document.revision }),
+      }),
+    );
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
       `http://localhost:8000/projects/${document.id}/redo`,
-      expect.objectContaining({ body: JSON.stringify({ baseRevision: document.revision }) }),
-    )
-  })
+      expect.objectContaining({
+        body: JSON.stringify({ baseRevision: document.revision }),
+      }),
+    );
+  });
 
-  it('expone códigos estables del backend', async () => {
+  it("expone códigos estables del backend", async () => {
     vi.stubGlobal(
-      'fetch',
+      "fetch",
       vi.fn().mockResolvedValue(
         new Response(
-          JSON.stringify({ detail: { code: 'ELEMENT_ALREADY_EXISTS', message: 'UML element exists' } }),
+          JSON.stringify({
+            detail: {
+              code: "ELEMENT_ALREADY_EXISTS",
+              message: "UML element exists",
+            },
+          }),
           { status: 409 },
         ),
       ),
-    )
+    );
 
     await expect(getProject(document.id)).rejects.toMatchObject({
       status: 409,
-      code: 'ELEMENT_ALREADY_EXISTS',
-    })
-  })
-})
+      code: "ELEMENT_ALREADY_EXISTS",
+    });
+  });
+});
