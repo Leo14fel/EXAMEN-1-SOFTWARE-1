@@ -39,6 +39,7 @@ def store() -> MongoStore:
             database.drop_collection(f"{prefix}users")
             database.drop_collection(f"{prefix}projects")
             database.drop_collection(f"{prefix}presence")
+            database.drop_collection(f"{prefix}sessions")
         connection.close()
 
 

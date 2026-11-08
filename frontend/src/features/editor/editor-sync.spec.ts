@@ -184,3 +184,19 @@ describe('presencia por la conexión compartida', () => {
     expect(socket.sent).toEqual([])
   })
 })
+
+
+it('negocia conversación grupal y procesa páginas sin confundirlas con cambios UML', () => {
+  const onConversation = vi.fn(), onEvent = vi.fn().mockReturnValue(true)
+  const stop = connectProjectSync({ projectId: document.id, token: 'test', onEvent,
+    onConversation, onStatus: vi.fn(), onForbidden: vi.fn() })
+  const socket = FakeSocket.instances[0]!
+  socket.onopen?.()
+  expect(JSON.parse(socket.sent[0]!)).toMatchObject({ conversation: true })
+  socket.message({ type: 'snapshot', document, effectiveRole: 'EDITOR', canUndo: false, canRedo: false })
+  socket.message({ type: 'conversation', projectId: document.id, events: [], participants: [],
+    cursor: 0, version: 0, hasEarlier: false, hasMore: false })
+  expect(onConversation).toHaveBeenCalledOnce()
+  expect(onEvent).toHaveBeenCalledOnce()
+  stop()
+})

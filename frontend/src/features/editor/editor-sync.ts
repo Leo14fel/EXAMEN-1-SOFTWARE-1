@@ -1,5 +1,6 @@
 import { API_BASE_URL } from '../../services/api'
 import type { JsonValue, ProjectDocument, ProjectEditorState, ProjectRole } from './types'
+import type { SessionPage } from './group-session-api'
 
 export type SyncStatus = 'connecting' | 'connected' | 'reconnecting' | 'unavailable'
 export interface DocumentChange {
@@ -82,6 +83,7 @@ export function connectProjectSync(options: {
   onStatus: (status: SyncStatus) => void
   onForbidden: (code: number) => void
   onPresence?: (event: PresenceEvent) => void
+  onConversation?: (page: SessionPage) => void
 }): PresenceConnection {
   let stopped = false
   let socket: WebSocket | null = null
@@ -119,12 +121,18 @@ export function connectProjectSync(options: {
       if (stopped || socket !== current) return
       current.send(JSON.stringify({ type: 'authenticate', token: options.token,
         ...(options.onPresence ? { presence: true } : {}),
-         }))
+        ...(options.onConversation ? { conversation: true } : {}) }))
+      // Conversation is negotiated independently of ephemeral presence.
     }
     current.onmessage = (message) => {
       if (stopped || socket !== current) return
       try {
-        const event = JSON.parse(String(message.data)) as SyncEvent | PresenceEvent
+        const event = JSON.parse(String(message.data)) as SyncEvent | PresenceEvent | (SessionPage & { type: 'conversation' })
+        if (event.type === 'conversation') {
+          if (event.projectId !== options.projectId || !Array.isArray(event.events)) throw new Error('Sesión inválida')
+          options.onConversation?.(event)
+          return
+        }
         if (event.type === 'presence') {
           if (event.projectId !== options.projectId || !Array.isArray(event.participants)) throw new Error('Presencia inválida')
           options.onPresence?.(event)

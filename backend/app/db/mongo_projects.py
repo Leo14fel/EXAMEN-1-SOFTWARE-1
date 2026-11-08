@@ -29,7 +29,7 @@ def project_from_mongo(data: dict[str, Any]) -> ProjectDocument:
     payload = {
         key: value
         for key, value in data.items()
-        if key not in {'_id', '_memberships'}
+        if key not in {'_id', '_pendingActivity', '_pendingMessage', '_memberships'}
     }
     document = ProjectDocument.model_validate(payload)
     if data.get("_id") != str(document.id):
@@ -62,6 +62,7 @@ class MongoProjectStore:
         base_revision: int,
         *,
         actor_id: UUID | None = None,
+        activity: dict | None = None,
     ) -> bool:
         if base_revision < 0 or document.revision != base_revision + 1:
             raise ValueError("A persisted mutation must increment revision exactly once")
@@ -81,5 +82,11 @@ class MongoProjectStore:
             key: data[key]
             for key in ("metadata", "revision", "updatedAt", "umlModel", "diagramLayout")
         }
+        if activity is not None:
+            query["_pendingActivity"] = {"$exists": False}
+            updates["_pendingActivity"] = activity
+            raw = self.collection.find_one({"_id": str(document.id)}) or {}
+            if len(BSON.encode({**raw, **updates})) > MAX_BSON_BYTES:
+                raise ProjectTooLargeError("Project activity reservation exceeds storage limit")
         result = self.collection.update_one(query, {"$set": updates}, upsert=False)
         return result.matched_count == 1

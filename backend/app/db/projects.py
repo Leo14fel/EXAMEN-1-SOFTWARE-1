@@ -101,10 +101,11 @@ def update_project_if_revision(
     base_revision: int,
     *,
     actor_id: UUID | None = None,
+    activity: dict | None = None,
 ) -> bool:
     if isinstance(session, MongoStore):
         return session.project_store.update_if_revision(
-            document, base_revision, actor_id=actor_id
+            document, base_revision, actor_id=actor_id, activity=activity
         )
     data = document.model_dump(mode="json", by_alias=True)
     result = session.execute(

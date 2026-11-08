@@ -15,6 +15,7 @@ from app.db.dependencies import (
     get_db_session,
     rollback_sql_session,
 )
+from app.db.group_sessions import flush_pending, join_session, recover_session
 from app.db.memberships import (
     ProjectMembershipRecord,
     ProjectRole,
@@ -197,6 +198,10 @@ def _mutate_project(
             _invalidate_project_bus(project_id)
             raise _revision_conflict()
 
+        if isinstance(session, MongoStore):
+            join_session(session, project_id, user)
+            recover_session(session, project_id)
+
         bus = _project_bus(project_id, document)
         try:
             if action == "execute":
@@ -216,6 +221,19 @@ def _mutate_project(
             # Mongo must check current edit permission in the same atomic write
             # as revision: a concurrent revocation cannot leave a stale editor authorized.
             options = {"actor_id": user.id} if isinstance(session, MongoStore) else {}
+            if isinstance(session, MongoStore):
+                element = getattr(command, "element", None)
+                element_id = getattr(command, "element_id", None) or getattr(element, "id", None)
+                options["activity"] = {
+                    "id": f"activity:{project_id}:{bus.document.revision}",
+                    "kind": "activity",
+                    "actorId": str(user.id),
+                    "actorName": user.email.partition("@")[0][:40],
+                    "createdAt": bus.document.updated_at.isoformat(),
+                    "action": command.command_type if action == "execute" else action,
+                    "projectRevision": bus.document.revision,
+                    "elementId": str(element_id) if element_id else None,
+                }
             if not update_project_if_revision(session, bus.document, base_revision, **options):
                 rollback_sql_session(session)
                 _invalidate_project_bus(project_id)
@@ -243,6 +261,12 @@ def _mutate_project(
                 },
             ) from error
 
+        if isinstance(session, MongoStore):
+            try:
+                flush_pending(session, project_id, "_pendingActivity")
+            except (PyMongoError, ProjectTooLargeError, HTTPException):
+                # Accepted activity stays durable in the atomic project reservation.
+                pass
         return _state(bus)
 
 

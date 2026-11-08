@@ -14,6 +14,7 @@ from app.api.projects import _project_access, _project_bus, _project_lock, _stat
 from app.core.config import settings
 from app.core.security import decode_access_token, invalid_token_error
 from app.db.dependencies import StorageSession, get_db_session
+from app.db.group_sessions import join_session, recover_session, session_page
 from app.db.mongo_store import MongoStore
 from app.db.presence import PresenceUpdate, heartbeat, participants
 from app.db.users import get_user_by_id
@@ -75,6 +76,20 @@ def subscription_state(
     return result
 
 
+def conversation_state(
+    session: MongoStore,
+    project_id: UUID,
+    token: str,
+    cursor: int | None,
+) -> dict:
+    user = get_user_by_id(session, decode_access_token(token))
+    if user is None:
+        raise invalid_token_error()
+    _project_access(session, project_id, user)
+    if cursor is None:
+        join_session(session, project_id, user)
+    recover_session(session, project_id)
+    return session_page(session, project_id, after=cursor)
 
 
 async def receive_control(socket: WebSocket) -> dict:
@@ -112,6 +127,9 @@ async def synchronize_project(
             presence_session = uuid4()
         previous = None
         previous_presence = None
+        conversation = auth.get("conversation") is True and isinstance(session, MongoStore)
+        conversation_cursor = None
+        previous_participants = None
         update = None
         force_snapshot = True
         while True:
@@ -146,6 +164,18 @@ async def synchronize_project(
                     }
                 )
                 previous_presence = peers
+            if conversation:
+                page = await run_in_threadpool(
+                    conversation_state, session, project_id, token, conversation_cursor
+                )
+                if (
+                    conversation_cursor is None
+                    or page["events"]
+                    or page["participants"] != previous_participants
+                ):
+                    await socket.send_json({"type": "conversation", **page})
+                conversation_cursor = page["cursor"]
+                previous_participants = page["participants"]
             previous = current
             force_snapshot = False
             try:

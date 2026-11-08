@@ -19,6 +19,7 @@ import { useAuthStore } from "../auth/auth-store";
 import { downloadProjectXmi } from "./editor-api";
 import { connectProjectSync, type PresenceConnection } from "./editor-sync";
 import PresencePanel from "./PresencePanel.vue";
+import GroupSessionPanel from "./GroupSessionPanel.vue";
 
 const editorStore = useEditorStore();
 const authStore = useAuthStore();
@@ -289,15 +290,21 @@ watch([projectId, () => authStore.token], ([id, token]) => {
   cursorPosition.value = null;
   editorStore.participants = [];
   editorStore.presenceSessionId = null;
+  editorStore.sessionEvents = [];
+  editorStore.sessionParticipants = [];
+  editorStore.sessionReady = false;
+  editorStore.sessionError = null;
   if (!id || !token) return;
   stopSync = connectProjectSync({
     projectId: id,
     token,
     onEvent: (event) => editorStore.applySyncEvent(event),
     onPresence: (event) => editorStore.applyPresence(event),
+    onConversation: (page) => editorStore.applySessionPage(page),
     onStatus: (status) => {
       editorStore.syncStatus = status;
       if (status !== 'connected') {
+        editorStore.sessionReady = false;
         editorStore.participants = [];
         editorStore.presenceSessionId = null;
       }
@@ -557,6 +564,7 @@ onMounted(loadProjects);
             :busy="busy || !canEdit"
             @create="createRelationship"
           />
+          <GroupSessionPanel :key="document.id" @select="selectedElementId = $event" />
         </template>
 
         <div v-else-if="!error" class="editor-loading">
