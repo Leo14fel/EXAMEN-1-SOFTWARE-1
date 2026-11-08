@@ -1,0 +1,86 @@
+package {{ options.package_name }}.application;
+
+import java.util.*;
+import jakarta.persistence.EntityManager;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.domain.Page;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
+import {{ options.package_name }}.domain.{{ table.class_name }};
+import {{ options.package_name }}.persistence.{{ table.class_name }}Repository;
+import {{ options.package_name }}.api.{{ table.class_name }}Input;
+import {{ options.package_name }}.api.{{ table.class_name }}View;
+
+@Service
+@Transactional(readOnly = true)
+public class {{ table.class_name }}Service {
+    private final {{ table.class_name }}Repository repository;
+    private final EntityManager entityManager;
+
+    private static final Map<String, QuerySupport.Field> FIELDS = Map.ofEntries(
+{% for column in table.columns %}
+        Map.entry({{ column.name|java_string }}, new QuerySupport.Field({{ column.field|java_string }}, {{ column.java_type }}.class, {{ 'true' if column.sortable else 'false' }}, {{ 'true' if column.searchable else 'false' }})){{ ',' if not loop.last else '' }}
+{% endfor %}
+    );
+
+    public {{ table.class_name }}Service({{ table.class_name }}Repository repository, EntityManager entityManager) {
+        this.repository = repository;
+        this.entityManager = entityManager;
+    }
+
+    public {{ table.class_name }} get({{ table.id_type }} id) {
+{% if table.id_type == 'String' %}
+        if (id.indexOf(0) >= 0) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid text identity");
+{% endif %}
+        return repository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Item not found"));
+    }
+
+    public QuerySupport.PageResult<{{ table.class_name }}View> list(MultiValueMap<String, String> parameters, Specification<{{ table.class_name }}> scope) {
+        var query = QuerySupport.<{{ table.class_name }}>parse(parameters, FIELDS, {{ table.identity.name|java_string }});
+        var page = repository.findAll(query.specification().and(scope), query.pageable());
+        return new QuerySupport.PageResult<>(page.getContent().stream().map({{ table.class_name }}View::from).toList(), page.getNumber(), page.getSize(), page.getTotalElements());
+    }
+
+    public long count(MultiValueMap<String, String> parameters) {
+        return repository.count(QuerySupport.<{{ table.class_name }}>parse(parameters, FIELDS, {{ table.identity.name|java_string }}).specification());
+    }
+{% if not table.read_only %}
+    @Transactional
+    public {{ table.class_name }}View create({{ table.class_name }}Input input) {
+        var entity = new {{ table.class_name }}();
+{% for column in table.write_columns %}
+        entity.set{{ column.accessor }}(input.{{ column.field }}());
+{% endfor %}
+        // persist always INSERTs: assigned IDs must never merge/overwrite another row.
+        entityManager.persist(entity);
+        entityManager.flush();
+        return {{ table.class_name }}View.from(entity);
+    }
+
+    @Transactional
+    public {{ table.class_name }}View update({{ table.id_type }} id, {{ table.class_name }}Input input) {
+        var entity = get(id);
+{% if not table.identity.generated %}
+        if (!Objects.equals(id, input.{{ table.identity.field }}())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Identity is immutable");
+        }
+{% endif %}
+{% for column in table.write_columns %}
+{% if not column.is_id %}
+        entity.set{{ column.accessor }}(input.{{ column.field }}());
+{% endif %}
+{% endfor %}
+        entityManager.flush();
+        return {{ table.class_name }}View.from(entity);
+    }
+
+    @Transactional
+    public void delete({{ table.id_type }} id) {
+        repository.delete(get(id));
+        repository.flush();
+    }
+{% endif %}
+}

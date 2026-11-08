@@ -1,0 +1,24 @@
+-- Apply to a new, dedicated PostgreSQL database. No DROP or implicit migrations.
+BEGIN;
+SET LOCAL standard_conforming_strings = on;
+{% for table in tables %}
+CREATE TABLE "{{ table.name }}" (
+{% for column in table.columns %}
+    "{{ column.name }}" {{ column.sql_type }}{% if not column.nullable %} NOT NULL{% endif %}{% if column.allowed_values is not none %} CHECK ("{{ column.name }}" IN ({% for value in column.allowed_values %}{{ value|sql_string }}{% if not loop.last %}, {% endif %}{% endfor %})){% endif %},
+{% endfor %}
+    PRIMARY KEY ({% for column in table.primary_key %}"{{ column }}"{% if not loop.last %}, {% endif %}{% endfor %}){% for columns in table.unique_constraints %},
+    UNIQUE ({% for column in columns %}"{{ column }}"{% if not loop.last %}, {% endif %}{% endfor %}){% endfor %}
+
+);
+{% for index in table.indexes %}
+CREATE INDEX "{{ index.name }}" ON "{{ table.name }}" ({% for column in index.columns %}"{{ column }}"{% if not loop.last %}, {% endif %}{% endfor %});
+{% endfor %}
+{% endfor %}
+{% for table in tables %}
+{% for key in table.foreign_keys %}
+ALTER TABLE "{{ table.name }}" ADD CONSTRAINT "{{ key.name }}"
+    FOREIGN KEY ({% for column in key.columns %}"{{ column }}"{% if not loop.last %}, {% endif %}{% endfor %})
+    REFERENCES "{{ key.target_table }}" ({% for column in key.target_columns %}"{{ column }}"{% if not loop.last %}, {% endif %}{% endfor %}) ON DELETE {{ key.on_delete }};
+{% endfor %}
+{% endfor %}
+COMMIT;

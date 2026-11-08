@@ -1,0 +1,8 @@
+package {{ options.package_name }}.persistence;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import {{ options.package_name }}.domain.{{ table.class_name }};
+
+public interface {{ table.class_name }}Repository extends JpaRepository<{{ table.class_name }}, {{ table.id_type }}>, JpaSpecificationExecutor<{{ table.class_name }}> {
+}

@@ -1,0 +1,21 @@
+package {{ options.package_name }}.api;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import {{ options.package_name }}.validation.AllowedValues;
+
+public record {{ table.class_name }}Input(
+{% for column in table.write_columns %}
+{% if not column.nullable %}
+    @NotNull
+{% endif %}
+{% if column.sql_type == 'text' %}
+    @Pattern(regexp = "[^\\x00]*")
+{% endif %}
+{% if column.allowed_values is not none %}
+    @AllowedValues(value = { {% for value in column.allowed_values %}{{ value|java_string }}{% if not loop.last %}, {% endif %}{% endfor %} })
+{% endif %}
+    @JsonProperty({{ column.name|java_string }}) {{ column.java_type }} {{ column.field }}{{ ',' if not loop.last else '' }}
+{% endfor %}
+) {}

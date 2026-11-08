@@ -1,0 +1,90 @@
+package {{ options.package_name }}.application;
+
+import java.util.*;
+import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
+
+public final class QuerySupport {
+    private QuerySupport() {}
+    public record Field(String property, Class<?> type, boolean sortable, boolean searchable) {}
+    public record Query<T>(Specification<T> specification, Pageable pageable) {}
+    public record PageResult<T>(List<T> items, int page, int size, long total) {}
+
+    private static ResponseStatusException bad(String message) {
+        return new ResponseStatusException(HttpStatus.BAD_REQUEST, message);
+    }
+
+    private static Object typed(String text, Class<?> type) {
+        try {
+            if (type == String.class) {
+                if (text.indexOf(0) >= 0) throw bad("Invalid text filter");
+                return text;
+            }
+            if (type == Integer.class) return Integer.valueOf(text);
+            if (type == Long.class) return Long.valueOf(text);
+            if (type == java.math.BigDecimal.class) return new java.math.BigDecimal(text);
+            if (type == Boolean.class && (text.equals("true") || text.equals("false"))) return Boolean.valueOf(text);
+            if (type == java.util.UUID.class) return java.util.UUID.fromString(text);
+            if (type == java.time.LocalDate.class) return java.time.LocalDate.parse(text);
+            if (type == java.time.OffsetDateTime.class) return java.time.OffsetDateTime.parse(text);
+            if (type == Double.class) {
+                double value = Double.parseDouble(text);
+                if (Double.isFinite(value)) return value;
+            }
+        } catch (IllegalArgumentException | java.time.format.DateTimeParseException ignored) {
+            throw bad("Invalid filter value");
+        }
+        throw bad("Invalid filter value");
+    }
+
+    private static int integer(MultiValueMap<String, String> parameters, String key, int fallback, int min, int max) {
+        String text = parameters.getFirst(key);
+        if (text == null) return fallback;
+        try {
+            int result = Integer.parseInt(text);
+            if (result >= min && result <= max) return result;
+        } catch (NumberFormatException ignored) {}
+        throw bad("Invalid pagination");
+    }
+
+    public static <T> Query<T> parse(MultiValueMap<String, String> parameters, Map<String, Field> fields, String id) {
+        if (parameters.size() > 20) throw bad("Too many query parameters");
+        for (var entry : parameters.entrySet()) {
+            if (entry.getValue().size() != 1 || entry.getValue().getFirst().length() > 512) throw bad("Invalid query parameter");
+            if (!Set.of("page", "size", "sort", "direction", "q").contains(entry.getKey()) && !entry.getKey().startsWith("filter.")) throw bad("Unknown query parameter");
+        }
+        int page = integer(parameters, "page", 0, 0, 1000000);
+        int size = integer(parameters, "size", 20, 1, 100);
+        String sort = parameters.getFirst("sort");
+        if (sort == null) sort = id;
+        Field sortField = fields.get(sort);
+        if (sortField == null || !sortField.sortable()) throw bad("Field is not sortable");
+        String direction = parameters.getFirst("direction");
+        if (direction == null) direction = "asc";
+        if (!direction.equals("asc") && !direction.equals("desc")) throw bad("Invalid sort direction");
+        Sort ordering = Sort.by(Sort.Direction.fromString(direction), sortField.property());
+        if (!sort.equals(id)) ordering = ordering.and(Sort.by(fields.get(id).property()));
+        Specification<T> specification = (root, query, cb) -> cb.conjunction();
+        for (var entry : parameters.entrySet()) {
+            if (!entry.getKey().startsWith("filter.")) continue;
+            Field field = fields.get(entry.getKey().substring(7));
+            if (field == null) throw bad("Unknown filter field");
+            Object value = typed(entry.getValue().getFirst(), field.type());
+            specification = specification.and((root, query, cb) -> cb.equal(root.get(field.property()), value));
+        }
+        String search = parameters.getFirst("q");
+        if (search != null && search.indexOf(0) >= 0) throw bad("Invalid text search");
+        if (search != null && !search.isEmpty()) {
+            var searchable = fields.values().stream().filter(Field::searchable).toList();
+            if (searchable.isEmpty()) throw bad("No searchable attributes declared");
+            String pattern = "%" + search.toLowerCase(Locale.ROOT).replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%";
+            specification = specification.and((root, query, cb) -> cb.or(searchable.stream()
+                .map(field -> cb.like(cb.lower(root.<String>get(field.property())), pattern, '\\'))
+                .toArray(jakarta.persistence.criteria.Predicate[]::new)));
+        }
+        return new Query<>(specification, PageRequest.of(page, size, ordering));
+    }
+}

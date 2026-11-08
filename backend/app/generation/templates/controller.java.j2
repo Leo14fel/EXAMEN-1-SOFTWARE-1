@@ -1,0 +1,73 @@
+package {{ options.package_name }}.api;
+
+import jakarta.validation.Valid;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.util.MultiValueMap;
+import {{ options.package_name }}.application.*;
+
+@RestController
+@RequestMapping({{ ('/api/' + table.name)|java_string }})
+public class {{ table.class_name }}Controller {
+    private final {{ table.class_name }}Service service;
+{% for dependency in table.dependencies %}
+    private final {{ dependency.class_name }}Service related{{ dependency.class_name }};
+{% endfor %}
+    public {{ table.class_name }}Controller({{ table.class_name }}Service service{% for dependency in table.dependencies %}, {{ dependency.class_name }}Service related{{ dependency.class_name }}{% endfor %}) {
+        this.service = service;
+{% for dependency in table.dependencies %}
+        this.related{{ dependency.class_name }} = related{{ dependency.class_name }};
+{% endfor %}
+    }
+
+    @GetMapping
+    public QuerySupport.PageResult<{{ table.class_name }}View> list(@RequestParam MultiValueMap<String, String> parameters) {
+        return service.list(parameters, (root, query, cb) -> cb.conjunction());
+    }
+
+    @GetMapping("/count")
+    public long count(@RequestParam MultiValueMap<String, String> parameters) {
+        return service.count(parameters);
+    }
+
+    @GetMapping("/item")
+    public {{ table.class_name }}View get(@RequestParam {{ table.id_type }} id) {
+        return {{ table.class_name }}View.from(service.get(id));
+    }
+{% if not table.read_only %}
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public {{ table.class_name }}View create(@Valid @RequestBody {{ table.class_name }}Input input) {
+        return service.create(input);
+    }
+
+    @PutMapping("/item")
+    public {{ table.class_name }}View update(@RequestParam {{ table.id_type }} id, @Valid @RequestBody {{ table.class_name }}Input input) {
+        return service.update(id, input);
+    }
+
+    @DeleteMapping("/item")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void delete(@RequestParam {{ table.id_type }} id) {
+        service.delete(id);
+    }
+{% endif %}
+{% for reference in table.outgoing %}
+    @GetMapping({{ ('/references/' + reference.key)|java_string }})
+    public ResponseEntity<{{ reference.table.class_name }}View> reference{{ loop.index }}(@RequestParam {{ table.id_type }} id) {
+        var relatedId = service.get(id).get{{ reference.column.accessor }}();
+        return relatedId == null ? ResponseEntity.noContent().build()
+            : ResponseEntity.ok({{ reference.table.class_name }}View.from({{ reference.service }}.get(relatedId)));
+    }
+{% endfor %}
+{% for reference in table.incoming %}
+    @GetMapping({{ ('/related/' + reference.key)|java_string }})
+    public QuerySupport.PageResult<{{ reference.table.class_name }}View> related{{ loop.index }}(@RequestParam {{ table.id_type }} id, @RequestParam MultiValueMap<String, String> parameters) {
+        service.get(id);
+        var copy = new org.springframework.util.LinkedMultiValueMap<>(parameters);
+        copy.remove("id");
+        return {{ reference.service }}.list(copy, (root, query, cb) -> cb.equal(root.get({{ reference.column.field|java_string }}), id));
+    }
+{% endfor %}
+}

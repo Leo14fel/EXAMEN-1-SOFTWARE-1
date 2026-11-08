@@ -1,0 +1,82 @@
+# {{ options.artifact_name }}
+
+Generated backend: Java 21, Spring Boot 4.1.2, Gradle 9.5.1,
+JPA/Hibernate, Jakarta Validation, Jackson, springdoc 3.2.0 and PostgreSQL.
+
+Includes entities, repositories, validated DTOs, transactional services and REST
+controllers. Single-column references and 1:1 / 1:N relationships use scalar
+reference IDs and database constraints, with navigation endpoints. Composite IDs,
+N:M join tables, inheritance and relationships requiring additional runtime
+rules (including composition) are rejected, never silently omitted.
+No UML operation is converted into invented business logic. Read-only entities
+omit all mutation endpoints. Auditing and custom business methods are not generated.
+
+## Build
+
+Install Java 21 and Gradle 9.5.1, then run `gradle build`.
+Optionally create the standard wrapper using `gradle wrapper --gradle-version 9.5.1`.
+No database or credentials are required to compile. Dependencies require network
+access on the first build. No wrapper binaries are included in this increment.
+
+## Run against a dedicated PostgreSQL database
+
+Create an empty database and apply `schema.sql` using psql with
+`ON_ERROR_STOP=1`. This script intentionally fails on existing tables rather
+than overwriting or migrating data. Supply `DB_URL` (JDBC PostgreSQL URL),
+`DB_USER` and `DB_PASSWORD` through the environment, then run `gradle bootRun`.
+The application validates the schema instead of modifying it at startup.
+Do not use the legacy CASE database as the target.
+
+The generated foundation has no application authentication or authorization;
+CASE project permissions are not a security policy for generated business data.
+Keep it in a controlled development environment until a policy is specified.
+
+## Traceability
+
+Each generated entity maps to a relational table. Java names use deterministic
+suffixes to avoid collisions and reserved words; quoted SQL names preserve
+the relational model. Original UML/layout and CASE secrets are not copied.
+
+| Entity | Table / API base | Identity | Read only |
+| --- | --- | --- | --- |
+{% for table in tables %}
+| {{ table.class_name }} | /api/{{ table.name }} | {{ table.primary_key|join(', ') }} | {{ table.read_only }} |
+{% endfor %}
+
+## REST contract for each API base
+
+GET base lists `{items, page, size, total}`; GET base/count counts matching rows.
+GET base/item?id=... reads an item. For writable entities, POST base creates
+(201), PUT base/item?id=... replaces mutable attributes (200), DELETE
+base/item?id=... removes (204). Missing items return 404, malformed/invalid input
+400 and declared database constraint conflicts 409. Identity is immutable.
+Assigned identities must be included in the body; generated UUID identities
+are omitted. JSON property names are SQL column names from the table below;
+omitted nullable attributes on PUT become null. Unknown properties are rejected.
+IDs use query parameters so text identifiers may contain reserved path characters.
+
+List/count accept page (default 0, maximum 1000000), size (1..100, default 20),
+sort (a declared sortable column or primary key), direction (asc/desc),
+filter.COLUMN=value (typed equality, AND), and q (case-insensitive literal
+substring over explicitly searchable text attributes, OR). Sort defaults to the
+primary key and adds it as a tie breaker. Duplicate or unknown parameters fail.
+Filter "null" is the literal text value; there is no implicit null-query operator.
+At most 20 query parameters and 512 characters per value are accepted.
+
+GET base/references/FK_NAME?id=... returns a referenced item (204 if unset).
+GET base/related/FK_NAME?id=... lists incoming references with the same bounded
+list query. Database foreign keys reject missing references and restricted deletes.
+Reference fields are scalar IDs: no nested-object or implicit cascade writes.
+
+{% for table in tables %}
+### {{ table.name }}
+
+| JSON property | Java type | Required | Generated | Searchable | Sortable |
+| --- | --- | --- | --- | --- | --- |
+{% for column in table.columns %}
+| {{ column.name }} | {{ column.java_type }} | {{ not column.nullable }} | {{ column.generated or '' }} | {{ column.searchable }} | {{ column.sortable }} |
+{% endfor %}
+{% for reference in table.outgoing %}
+Reference {{ reference.key }}: {{ reference.column.name }} → {{ reference.table.name }}.
+{% endfor %}
+{% endfor %}

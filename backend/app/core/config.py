@@ -1,3 +1,6 @@
+from typing import Literal
+
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -8,9 +11,11 @@ class Settings(BaseSettings):
     app_env: str = "development"
     frontend_origin: str = "http://localhost:5173"
     database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/examen_sw1"
+    persistence_backend: Literal["postgresql", "mongodb"] = "mongodb"
     jwt_secret_key: str
     jwt_algorithm: str = "HS256"
     jwt_access_token_minutes: int = 480
+    gemini_api_key: SecretStr | None = None
 
 
 settings = Settings()

@@ -4,8 +4,8 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import Field, field_validator
+from pymongo.errors import DuplicateKeyError, PyMongoError
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from sqlalchemy.orm import Session
 
 from app.core.security import (
     create_access_token,
@@ -14,7 +14,7 @@ from app.core.security import (
     invalid_token_error,
     verify_password,
 )
-from app.db.dependencies import get_db_session
+from app.db.dependencies import StorageSession, get_db_session, rollback_sql_session
 from app.db.users import UserRecord, create_user, get_user_by_email, get_user_by_id
 from app.domain.uml.models import DomainModel
 
@@ -55,7 +55,7 @@ def _user_response(user: UserRecord) -> AuthUser:
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials | None = bearer_credentials,
-    session: Session = database_session,
+    session: StorageSession = database_session,
 ) -> UserRecord:
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise invalid_token_error()
@@ -70,7 +70,7 @@ current_user_dependency = Depends(get_current_user)
 
 @router.post("/register", response_model=AccessTokenResponse, status_code=status.HTTP_201_CREATED)
 def register(
-    request: CredentialsRequest, session: Session = database_session
+    request: CredentialsRequest, session: StorageSession = database_session
 ) -> AccessTokenResponse:
     if get_user_by_email(session, request.email) is not None:
         raise HTTPException(
@@ -82,8 +82,8 @@ def register(
         )
     try:
         user = create_user(session, request.email, hash_password(request.password))
-    except IntegrityError as error:
-        session.rollback()
+    except (IntegrityError, DuplicateKeyError) as error:
+        rollback_sql_session(session)
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={
@@ -91,8 +91,8 @@ def register(
                 "message": "Email is already registered",
             },
         ) from error
-    except SQLAlchemyError as error:
-        session.rollback()
+    except (SQLAlchemyError, PyMongoError) as error:
+        rollback_sql_session(session)
         raise HTTPException(
             status_code=503,
             detail={"code": "AUTH_UNAVAILABLE", "message": "Authentication is unavailable"},
@@ -101,7 +101,9 @@ def register(
 
 
 @router.post("/login", response_model=AccessTokenResponse)
-def login(request: CredentialsRequest, session: Session = database_session) -> AccessTokenResponse:
+def login(
+    request: CredentialsRequest, session: StorageSession = database_session
+) -> AccessTokenResponse:
     user = get_user_by_email(session, request.email)
     if user is None or not verify_password(request.password, user.password_hash):
         raise HTTPException(

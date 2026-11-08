@@ -8,6 +8,7 @@ import type { ProjectDocument, ProjectEditorState, ProjectSummary, UmlClass } fr
 vi.mock('./editor-api', () => ({
   createProject: vi.fn(),
   getProject: vi.fn(),
+  importProjectXmi: vi.fn(),
   listProjects: vi.fn(),
   executeProjectCommand: vi.fn(),
   undoProject: vi.fn(),
@@ -192,3 +193,38 @@ describe('editor store', () => {
     expect(editorApi.getProject).toHaveBeenCalledOnce()
   })
 })
+
+
+it('abre el nuevo importado y expone advertencias sin alterar el proyecto anterior', async () => {
+  const store = useEditorStore();
+  store.applyProjectDocument(document);
+  const imported = {...document,id:'new-project',revision:0};
+  vi.mocked(editorApi.importProjectXmi).mockResolvedValue({document:imported,warnings:['Paquetes aplanados']});
+  await store.importXmi(new File(['<xmi/>'],'model.xmi'));
+  expect(store.projectId).toBe('new-project');
+  expect(store.document).toEqual(imported);
+  expect(store.importWarnings).toEqual(['Paquetes aplanados']);
+  expect(store.effectiveRole).toBe('EDITOR');
+  expect(document.revision).toBe(0);
+});
+
+it('mantiene el documento abierto cuando el XML es rechazado', async () => {
+  const store = useEditorStore();
+  store.applyProjectDocument(document);
+  vi.mocked(editorApi.importProjectXmi).mockRejectedValue(new Error('XML inválido'));
+  await expect(store.importXmi(new File(['bad'],'model.xmi'))).rejects.toThrow('XML inválido');
+  expect(store.document).toEqual(document);
+  expect(store.projectId).toBe(document.id);
+});
+
+
+it('no repite la importación guardada si solo falla refrescar la lista', async () => {
+  const store = useEditorStore();
+  const imported = {...document,id:'saved-import',revision:0};
+  vi.mocked(editorApi.importProjectXmi).mockResolvedValue({document:imported,warnings:[]});
+  vi.mocked(editorApi.listProjects).mockRejectedValueOnce(new Error('Listado sin conexión'));
+  await expect(store.importXmi(new File(['<xmi/>'],'model.xmi'))).resolves.toBeUndefined();
+  expect(store.projectId).toBe('saved-import');
+  expect(store.projects.some(project => project.id === 'saved-import')).toBe(true);
+  expect(store.error).toContain('se importó correctamente');
+});

@@ -1,0 +1,18 @@
+package {{ options.package_name }}.api;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import {{ options.package_name }}.domain.{{ table.class_name }};
+
+public record {{ table.class_name }}View(
+{% for column in table.columns %}
+    @JsonProperty({{ column.name|java_string }}) {{ column.java_type }} {{ column.field }}{{ ',' if not loop.last else '' }}
+{% endfor %}
+) {
+    public static {{ table.class_name }}View from({{ table.class_name }} entity) {
+        return new {{ table.class_name }}View(
+{% for column in table.columns %}
+            entity.get{{ column.accessor }}(){{ ',' if not loop.last else '' }}
+{% endfor %}
+        );
+    }
+}

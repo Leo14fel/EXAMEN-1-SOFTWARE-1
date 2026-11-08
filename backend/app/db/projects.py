@@ -9,6 +9,7 @@ from sqlalchemy.dialects.postgresql import UUID as PostgreSQLUUID
 from sqlalchemy.orm import Mapped, Session, mapped_column
 
 from app.db.base import Base
+from app.db.mongo_store import MongoStore
 from app.domain.uml.models import ProjectDocument
 
 
@@ -55,7 +56,9 @@ def project_document_from_record(record: ProjectRecord) -> ProjectDocument:
     )
 
 
-def create_project(session: Session, document: ProjectDocument) -> ProjectDocument:
+def create_project(session: Session | MongoStore, document: ProjectDocument) -> ProjectDocument:
+    if isinstance(session, MongoStore):
+        return session.create_project(document)
     record = project_record_from_document(document)
     session.add(record)
     session.commit()
@@ -63,12 +66,16 @@ def create_project(session: Session, document: ProjectDocument) -> ProjectDocume
     return project_document_from_record(record)
 
 
-def get_project(session: Session, project_id: UUID) -> ProjectDocument | None:
+def get_project(session: Session | MongoStore, project_id: UUID) -> ProjectDocument | None:
+    if isinstance(session, MongoStore):
+        return session.get_project(project_id)
     record = session.get(ProjectRecord, project_id)
     return None if record is None else project_document_from_record(record)
 
 
-def list_projects(session: Session, owner_id: UUID) -> Sequence[ProjectRecord]:
+def list_projects(session: Session | MongoStore, owner_id: UUID) -> Sequence[ProjectRecord]:
+    if isinstance(session, MongoStore):
+        return [project_record_from_document(doc) for doc in session.list_projects(owner_id)]
     from app.db.memberships import ProjectMembershipRecord
 
     statement = (
@@ -89,8 +96,17 @@ def list_projects(session: Session, owner_id: UUID) -> Sequence[ProjectRecord]:
 
 
 def update_project_if_revision(
-    session: Session, document: ProjectDocument, base_revision: int
+    session: Session | MongoStore,
+    document: ProjectDocument,
+    base_revision: int,
+    *,
+    actor_id: UUID | None = None,
+    activity: dict | None = None,
 ) -> bool:
+    if isinstance(session, MongoStore):
+        return session.project_store.update_if_revision(
+            document, base_revision, actor_id=actor_id, activity=activity
+        )
     data = document.model_dump(mode="json", by_alias=True)
     result = session.execute(
         update(ProjectRecord)

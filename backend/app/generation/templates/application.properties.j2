@@ -1,0 +1,11 @@
+spring.application.name={{ options.artifact_name }}
+spring.datasource.url=${DB_URL}
+spring.datasource.username=${DB_USER}
+spring.datasource.password=${DB_PASSWORD}
+spring.jpa.hibernate.ddl-auto=validate
+spring.jpa.open-in-view=false
+spring.jpa.properties.hibernate.globally_quoted_identifiers=true
+spring.jpa.properties.hibernate.globally_quoted_identifiers_skip_column_definitions=true
+spring.sql.init.mode=never
+spring.jackson.deserialization.fail-on-unknown-properties=true
+server.port=${PORT:8080}

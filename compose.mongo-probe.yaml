@@ -1,0 +1,21 @@
+# Optional CU-25 integration environment. Does not replace Atlas acceptance.
+name: cu25-mongo-probe
+
+services:
+  mongo-probe:
+    image: mongo:8.0
+    command: ["mongod", "--replSet", "cu25", "--bind_ip_all"]
+    ports:
+      - "127.0.0.1:27025:27017"
+    volumes:
+      - mongo_probe_data:/data/db
+      - mongo_probe_config:/data/configdb
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand({ping:1}).ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  mongo_probe_data:
+  mongo_probe_config:

@@ -24,6 +24,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   execute: [command: UmlCommand]
   clearSelection: []
+  editing: [elementId: string | null]
 }>()
 
 interface RelationshipForm {
@@ -239,6 +240,10 @@ const hasUnsavedChanges = computed(() => {
   }
 
   return false
+})
+
+watch([hasUnsavedChanges, () => props.selectedElementId], ([dirty, id]) => {
+  emit('editing', dirty ? id : null)
 })
 
 function draftMatchesSelectedElement(): boolean {

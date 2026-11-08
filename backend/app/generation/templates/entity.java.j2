@@ -1,0 +1,40 @@
+package {{ options.package_name }}.domain;
+
+import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import {{ options.package_name }}.validation.AllowedValues;
+
+@Entity
+@Table(name = {{ table.name|java_string }})
+public class {{ table.class_name }} {
+{% for column in table.columns %}
+{% if column.is_id %}
+    @Id
+{% if column.generated %}
+    @GeneratedValue(strategy = GenerationType.UUID)
+{% endif %}
+{% endif %}
+{% if not column.nullable and not column.generated %}
+    @NotNull
+{% endif %}
+{% if column.sql_type == 'text' %}
+    @Pattern(regexp = "[^\\x00]*")
+{% endif %}
+{% if column.allowed_values is not none %}
+    @AllowedValues(value = { {% for value in column.allowed_values %}{{ value|java_string }}{% if not loop.last %}, {% endif %}{% endfor %} })
+{% endif %}
+    @Column(name = {{ column.name|java_string }}, nullable = {{ 'true' if column.nullable else 'false' }}, columnDefinition = {{ column.sql_type|java_string }})
+    private {{ column.java_type }} {{ column.field }};
+{% endfor %}
+    public {{ table.class_name }}() {}
+{% for column in table.columns %}
+    public {{ column.java_type }} get{{ column.accessor }}() {
+        return {{ column.field }};
+    }
+
+    public void set{{ column.accessor }}({{ column.java_type }} value) {
+        this.{{ column.field }} = value;
+    }
+{% endfor %}
+}

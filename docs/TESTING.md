@@ -148,3 +148,137 @@ Las pruebas frontend cubren listado, creacion, apertura y cambio de proyectos, e
 Las pruebas de frontend verifican los cuatro tipos de relacion, los markers UML, multiplicidades por extremo, self-loops seleccionables con curva lateral, ausencia de multiplicidades en generalization y la exclusion del origen como destino de una generalization tanto en dialogo como en inspector. Tambien cubren el auto-layout que ignora self-loops sin quitarlos del documento, y la preservacion de borradores dirty del inspector.
 
 Las pruebas de backend de integridad de relaciones cubren creacion, actualizacion, eliminacion, Undo/Redo, persistencia y reapertura de las cuatro relaciones, incluidas autorrelaciones permitidas, junto con el rechazo autoritativo de `GENERALIZATION_SELF_REFERENCE` y `GENERALIZATION_CYCLE`.
+
+### CU-25 - Incremento 1, parte local (2026-11-06)
+
+Los tests nuevos usan BSON real y dobles PyMongo para comprobar round-trip de semántica/layout/metadatos/UUID/fechas con microsegundos, identidad inconsistente, exceso de 16 MiB, inserción duplicada sin reemplazo, ausencia de upsert, transición de revisión, contrato CAS, fallos de almacenamiento, timeouts, URI protegida y limpieza exclusiva del UUID de prueba. No se presentan como pruebas de concurrencia/atomicidad de un servidor Mongo real.
+
+
+- `scripts/check.ps1` fuera del aislamiento: **PASS**.
+- Backend: **207 passed**, 2 warnings externos deprecados de Starlette/httpx/AnyIO; **28 pruebas nuevas** CU-25.
+- Backend `compileall app`, `ruff check .` y `pip check`: **PASS**.
+- Frontend: typecheck **PASS**, **46 tests passed / 13 archivos**, build **PASS**. Warning de chunk >500 kB preexistente, sin ampliación de frontend en este CU.
+- Prueba CLI sin configuración cloud: **NOT RUN / exit 2**, comprobado; no es evidencia de servidor Mongo.
+- Manual cloud, concurrencia real y reinicio completo: **pendientes**, no aprobados ni sustituidos por mocks.
+- Entorno: Windows 11 (10.0.26300), Python 3.13.5, PyMongo 4.19.0. Sin benchmark IA aplicable.
+
+El intento inicial dentro del aislamiento de Windows se bloqueó al crear el socket interno de asyncio usado por TestClient. Se interrumpió y se ejecutó el gate fuera del aislamiento, donde terminó correctamente. No se cambió código de aplicación para esquivar esa limitación. Se corrigieron los fixtures nuevos (visibilidad y dimensiones requeridas) y formato Ruff antes del gate final.
+
+Incremento 1 permanece abierto hasta la prueba cloud de docs/deployment/NOSQL-CU25.md. No avanzar a incrementos 2/3 con esa verificación obligatoria pendiente. No se modificaron rutas SQL, datos ni frontend.
+
+## Continuación: prueba de concurrencia preparada (2026-11-06)
+
+Dentro del incremento 1 de CU-25 se amplió la CLI: fixture UML no vacío con dos clases, atributo, asociación, multiplicidades, layout y metadata; dos clientes independientes compiten por la misma revisión mediante ThreadPoolExecutor/Barrier. Debe aceptarse exactamente un candidato; la recuperación con cliente nuevo compara el documento ganador completo. El resultado real cloud sigue NOT RUN; el informe solo emitirá concurrentRevisionRejected=PASS tras comprobarlo en servidor.
+
+Se agregaron cuatro pruebas locales: round-trip del fixture, rechazo de cero/dos ganadores y uso de dos clientes con recuperación del candidato aceptado. Los dobles de cliente no demuestran concurrencia de MongoDB real.
+
+Verificación ejecutada tras estos cambios: **211 pruebas backend PASS**, dos warnings externos existentes; **32 pruebas locales CU-25** en total. Ruff, compileall app y pip check: **PASS**. Frontend no modificado; su gate anterior de 46 pruebas/typecheck/build sigue siendo evidencia histórica y no se reejecutó en esta continuación. Sin benchmark IA aplicable, sin migración, sin commit/push. Incremento y CU siguen abiertos por prueba cloud pendiente; no se inició otro CU.
+
+## Atlas preparado y configuración local protegida (2026-11-06)
+
+Se verificó el panel Atlas tras el registro personal del usuario. Se creó el cluster `cu25-pruebas`, opción Free ($0/h mostrado), proveedor AWS, región São Paulo/sa-east-1. El panel lo mostró ACTIVE y versión 8.0.37; backups y autoscaling OFF. No se cargaron datasets de ejemplo ni se contrataron tiers pagos.
+
+Se preparó un usuario limitado `cu25_probe`: readWrite únicamente sobre `examen_sw1_cu25_probe`, acceso restringido a ese cluster, temporal por una semana. El usuario introdujo personalmente la contraseña y confirmó Add User; se verificó su presencia y roles en la lista. El agente no conoce ni registró la contraseña.
+
+Regla de red preparada, sin confirmar: solo la IP pública actual del equipo durante seis horas. Se solicitó aprobación puntual por tratarse de acceso cloud. No se autorizó 0.0.0.0/0 ni se creó API key. Prueba cloud aún NOT RUN hasta regla aplicada y credencial configurada localmente.
+
+Nuevo `app.db.mongo_configure`: pide contraseña oculta en terminal interactiva, codifica caracteres reservados, escribe conexión en backend/.env mediante reemplazo atómico y preserva el resto de ajustes. Rechaza entrada no interactiva para evitar eco de contraseña, hostname ajeno a Atlas y escritura incompleta. No se ejecutó con credenciales reales.
+
+Se añadieron seis pruebas. Regresión ejecutada: **217 backend PASS**, dos warnings externos existentes; Ruff, compileall y pip check PASS. Frontend sin cambios, sin nueva ejecución de su gate. Incremento 1 y CU-25 siguen abiertos; sin migración ni inicio de otros CUs, sin commit/push.
+
+## Incremento 1 cerrado; inicio del incremento 2 (2026-11-06)
+
+Atlas mostró la regla /32 actual Active con expiración de seis horas, según autorización puntual del usuario. Se obtuvo el hostname del cluster desde Connect/PyMongo. El usuario configuró la contraseña personalmente en la terminal; backend/.env está excluido de Git.
+
+Primer intento cloud: FAIL, código Atlas 8000, autenticación rechazada. Se diagnosticó solo tipo/código y banderas seguras, sin exponer URI ni contraseña. El configurador ganó --verify: comprueba autenticación antes de reemplazar .env y permite hasta tres correcciones ocultas. Nueve pruebas del configurador; regresión **220 backend PASS**, dos warnings externos; Ruff, compileall y pip check PASS.
+
+Después de corregir la credencial, prueba real ejecutada: **PASS** a las 2026-11-07T01:36:21.743247Z (2026-11-06 21:36:21, America/La_Paz), revisión final 2. roundTrip, compareAndSwap, staleRevisionRejected, concurrentRevisionRejected y freshClientRecovery PASS. UUID temporal f72cdaaf-7ff8-467a-b697-57361cbaa4fd; limpieza de ese UUID completada antes de emitir PASS. Servidor Atlas 8.0.37 según panel; Python 3.13.5/PyMongo 4.19.0. Base examen_sw1_cu25_probe. HEAD c3bbdc34af1b87e3c2e832af8c619122bdc33a18 con cambios sin commit; la prueba corresponde al árbol de trabajo, no a ese commit limpio.
+
+Incremento 1 cerrado con evidencia local y cloud. Se inicia incremento 2 autorizado: adaptación de usuarios/proyectos/memberships y API; no se inicia otro CU ni se modifica SQL existente por anticipado. El cambio definitivo y migración siguen para incremento 3.
+
+## Incremento 2 cerrado (2026-11-06)
+
+MongoStore integrado mediante selección PERSISTENCE_BACKEND sin cambios en rutas/payloads frontend. Usuarios e índice único de correo normalizado; proyectos canónicos y memberships privadas en una sola envoltura. CAS comprueba permiso EDITOR/owner y revisión en la misma escritura; memberships no contaminan UML/layout. Adaptadores SQL preservados y modo por defecto todavía PostgreSQL. Cliente Mongo reutilizado/cerrado con ciclo de vida FastAPI, health del almacenamiento seleccionado, errores PyMongo redactados 503 y exceso BSON 413 con invalidación de bus.
+
+Pruebas nuevas: siete escenarios API ejecutados sin red con MongoMock y también contra Atlas real con CU25_LIVE_TESTS=1. Cubren registro/login, unicidad normalizada, owner/editor/viewer/outsider, listado compartido, comandos/conflictos, Undo/Redo, XMI, revocación/downgrade, rechazo atómico tras revocación, fallo de almacenamiento y selección de backend. Colecciones temporales cu25_<UUID>_users/projects creadas y eliminadas en examen_sw1_cu25_probe; no se tocaron colecciones ni datos de PostgreSQL.
+
+Gate final scripts/check.ps1 PASS: **227 backend**, 2 warnings externos; compileall, Ruff y pip check PASS; **46 frontend / 13 archivos**, typecheck y build PASS, warning preexistente de chunk >500 kB. Atlas: **7 escenarios API PASS**; son integración automatizada sobre servidor real, no prueba humana de interfaz. Se corrigió el orden del test Undo/Redo: provocar conflicto antes de Undo invalida su caché según comportamiento anterior; no se cambió esa semántica. Se limitaron cambios de formato a archivos afectados.
+
+Incrementos 1/2 cerrados; incremento 3 pendiente de corte/recuperación y decisión del usuario sobre trasladar datos SQL existentes o iniciar datos nuevos conservando SQL intacto. La pregunta de conservación sigue pendiente. No se inicia otro CU ni se presume aprobado subir datos personales reales. Sin commit/push.
+
+
+## CU-25 incremento 3: cierre medido (2026-11-06)
+
+Gate scripts/check.ps1 PASS: 235 backend y 46 frontend (13 archivos), Ruff, compileall, pip check, typecheck y build PASS. Persisten dos warnings externos de Starlette/httpx y AnyIO, y warning Vite de chunk >500 kB. Ocho pruebas nuevas de migración cubren integridad/checksum, respaldo exclusivo, identidad/hashes/permisos/legacy owners, idempotencia, conflictos previos a escritura y recuperación tras inserción parcial.
+
+Prueba operativa real: pg_dump 17.6 restaurado en base temporal y comparado; ensayo Atlas e idempotencia; corte de 3 usuarios/15 proyectos/2 permisos; source-check antes/después; autenticación/autorización HTTP, reinicio completo, recuperación, comandos nuevos/Undo/Redo. Registros y originales comparados, datos temporales limpiados. Resultado artifacts/cu25/cutover-result.json (privado). Trece ownerIds legacy sin cuenta fueron preservados, no reparados. Undo previo sigue efímero. No se ejecutó una nueva prueba humana del frontend ni benchmark IA. Ver CU-25 y deployment/NOSQL-CU25.md para límites y recuperación.
+
+
+## CU-10: evidencia 2026-11-07
+
+Incremento backend: 241 backend/46 frontend y gate completo PASS. Incremento cliente/carrera concurrente: scripts/check.ps1 PASS, **242 backend/55 frontend (14 archivos)**, Ruff/compileall/pip check/typecheck/build. Warnings externos y chunk Vite preexistentes. Siete pruebas backend y nueve frontend nuevas; escenarios y límites en CU-10.
+
+Smoke aislado HTTP+WebSocket TCP con dos clientes: deltas persistidos, revisión obsoleta, reconexión, downgrade y revocación PASS a las 11:44:19 Bolivia. MongoMock temporal, no Atlas; servidor apagado. Script/resultado ignorados en artifacts/cu10. Ping Atlas falló por timeout; control visual no inicia (os error 3); renovación IP autorizada, confirmación Active y aceptación visual pendientes. No se marca DONE ni se avanza a CU-11.
+
+
+## CU-11: evidencia 2026-11-07
+
+Inc.1: gate 247 backend/55 frontend PASS. Inc.2 final: scripts/check.ps1, **248 backend/61 frontend (15 archivos)**, Ruff/compileall/pip check/typecheck/build PASS. Warnings finales: 88 de datetime.utcnow interno de MongoMock al consultar TTL y dos externos previos; chunk Vite existente. Seis pruebas backend, seis frontend nuevas y señal de edición añadida al test de inspector. Casos detallados en CU-11.
+
+Smoke aislado HTTP+WebSocket TCP: dos sesiones, cursor remoto, documento/revisión inalterados y cleanup PASS; MongoMock, no Atlas. Resultado artifacts/cu11/wire-result.json a las 12:38:28 Bolivia. Datos/servidor temporales retirados. Aceptación visual/Atlas diferida como deuda por petición explícita del usuario; no se afirma validación cloud ni multiworker. No se modificaron datos reales.
+
+
+## CU-26: evidencia 2026-11-07
+
+Inc.1 gate 253 backend/61 frontend PASS, tras corregir variable de test sin uso. Inc.2 gate 257 backend/61 frontend PASS, luego 10 pruebas específicas + Ruff/compileall para proyección/paginación de 55 eventos. Inc.3 gate 258 backend/68 frontend, estático/build PASS; prueba de reintento se corrigió para esperar el DOM. Ver documento CU-26 para gate final tras reservar IDs de actividad.
+
+Smoke HTTP+WebSocket TCP: dos clientes, mensaje compartido y actividad atribuida, reinicio Uvicorn/caché vaciada/nuevo adaptador, historial recuperado, reintento idempotente y entrada tardía PASS a las 12:55:50 Bolivia. MongoMock se mantuvo como almacenamiento entre servidores; no equivale a proceso MongoDB reiniciado ni Atlas. Resultado artifacts/cu26/wire-result.json; servidores/datos temporales retirados. Sin prueba visual/cloud ni benchmark IA; deuda diferida por usuario, no aceptación aprobada.
+
+
+Gate final CU-26 tras separación de IDs: **258 backend/68 frontend (16 archivos)**, Ruff/compileall/pip check/typecheck/build PASS. Backend 94 warnings medidos: 92 MongoMock TTL y 2 externos previos; chunk Vite existente. Markdown (12 archivos/enlaces/UTF-8) y git diff --check PASS. Aceptación cloud/visual diferida, no aprobada.
+
+Smoke CU-26 repetido tras los IDs reservados: PASS 2026-11-07 13:00:32 Bolivia; recibo local actualizado, mismos límites MongoMock.
+
+
+## Reanudación de funciones antiguas 2026-11-07
+
+CU-21: inc.2 gate 270 backend/68 frontend; inc.3 final **277 backend/73 frontend**, Ruff/compileall/pip check/typecheck/build PASS. 90 warnings (88 MongoMock TTL y 2 externos previos); chunk Vite existente. Smoke HTTP TCP loopback con MongoMock, proyecto nuevo/owner, original intacto, round-trip semántico y error sin escritura PASS a las 13:13:51 Bolivia, artifacts/cu21/wire-result.json. Aceptación visual/EA real pendiente; XML sintético no la acredita. No IA/benchmark aplicable.
+
+CU-09: inc.2 gate 282 backend/73 frontend; inc.3 final **282 backend/80 frontend en 18 archivos**, Ruff/compileall/pip check/typecheck/build PASS. 94 warnings (92 MongoMock TTL y 2 externos previos), chunk existente. Cinco pruebas backend y siete frontend nuevas para código/correo/roles/vigencia/cancelación, canje atómico/carreras y UI/errores. Smoke HTTP TCP con MongoMock PASS a las 13:27:26 Bolivia, artifacts/cu09/wire-result.json: registro posterior, acceso VIEWER, replay, revocación y cancelación sin cambiar UML/revisión. Servidores/datos de prueba retirados; sin modificaciones a usuarios/datos reales ni mensajes externos. QA visual/cloud diferida, no aprobada. Git no ejecutado.
+
+Cierre documental de reanudación: 11 Markdown/enlaces/UTF-8 y git diff --check PASS tras retirar una línea vacía final. Secretos y recibos de pruebas siguen ignorados por Git.
+
+
+## CU-13: modelo relacional, 2026-11-07
+
+Inc.1 gate 296 backend/80 frontend PASS tras corregir una línea larga de Ruff y repetir gate. Inc.2 306 backend/80 frontend PASS. Inc.3 final scripts/check.ps1 **309 backend/86 frontend en 20 archivos**, Ruff/compileall/pip check/typecheck/build PASS. 98 warnings (96 de datetime.utcnow interno de MongoMock TTL + 2 externos previos), chunk Vite >500 kB existente. 24 tests mapper, 3 API y 6 frontend nuevos: tipos/PK/perfiles/enums, nombres/determinismo/immutabilidad, relaciones/autorrelaciones/nulabilidad/UNIQUE/índices, composición y obligaciones de runtime, JOINED/herencia múltiple, permisos, diagnósticos, revisión obsoleta y errores.
+
+Smoke HTTP TCP loopback con MongoMock PASS 2026-11-07 14:48:32 Bolivia: 3 clases/2 relaciones, PK Long heredada JOINED, composición, vista sin escritura y mismo modelo tras mover nodo (sourceRevision cambia). artifacts/cu13/wire-result.json; servidor/datos temporales retirados. No PostgreSQL DDL ejecutado, Atlas ni UI manual. QA visual/cloud diferida por usuario, no aprobada. No benchmark IA, cambios de tecnología ni commit/push.
+
+## Preparación de revisión manual, 2026-11-07
+
+Perfil explícito de prueba: backend/tests/manual/qa_server.py y frontend/vite.qa.config.ts; scripts/dev-qa.ps1 y stop-qa.ps1. Tres cuentas ficticias y MongoMock aislado, sin fallback de producción ni cambios de .env. Guía: [revisión manual](MANUAL-REVIEW.md). Gate final: 311 backend/86 frontend (20 archivos), Ruff/compileall/pip check/typecheck/build PASS; 94 warnings externos (92 MongoMock TTL y 2 previos), aviso de tamaño Vite existente. Primera ejecución falló por inspeccionar route.path en un _IncludedRouter; se corrigió el test para inspeccionar OpenAPI y se repitió el gate completo. Analizador PowerShell de ambos scripts y git diff --check PASS.
+
+Smoke HTTP/WebSocket real PASS 2026-11-07 15:04:15 Bolivia: banner, destino API aislado, tres logins/roles, dos tablas relacionales y frames snapshot/presence/conversation con Origin correcto. Recibo ignorado artifacts/manual-qa/readiness.json. No es prueba visual ni Atlas. Los servidores temporales quedaron activos en localhost:5175/8001 para revisión del usuario. El script de detención fue analizado, sin prueba de detención en vivo aún.
+
+## CU-14 incremento 1 — 2026-11-07
+
+25 pruebas nuevas del renderer, gate completo 336 backend/86 frontend (20 archivos), Ruff/compileall/pip check/typecheck/build PASS. 94 warnings backend externos y advertencia Vite previos. Proyecto generado con Java Temurin 21.0.12.1+1-LTS / Gradle 9.5.1 / Boot 4.1.2 / springdoc 3.2.0: build/JAR y 1 JUnit de validación Jakarta PASS. Wheel aislado e inclusión de 11 templates PASS; intento previo sin aislamiento carecía de setuptools y fue corregido usando el aislamiento estándar. Recibo ignorado artifacts/cu14/foundation-result.json; reproducción en CU-14. No se ejecutó SQL ni CRUD todavía, no se modificaron datos reales ni el servidor de QA visual.
+
+## CU-14 incremento 2 — 2026-11-07
+
+Gate final 342 backend/86 frontend (20 archivos), Ruff/compileall/pip check/typecheck/build PASS; 94 warnings externos y aviso Vite previos. Seis tests nuevos de CRUD/contratos/metadatos y límites, más 25 del renderer. Compilación real Gradle/Java PASS y 51 comprobaciones HTTP contra PostgreSQL 17.6 PASS a las 16:01:50 Bolivia, incluyendo reinicio JVM/recuperación. Base temporal propia creada y eliminada, legacy/Atlas intactos. Primera ejecución detectó PropertyReferenceException en ordenamiento por guion bajo; se corrigió el símbolo Java, añadió regresión y repitió todo. Recibo artifacts/cu14/crud-result.json. Wheel con 17 templates verificado. Reproducción y límites en CU-14; no aceptación visual de una descarga/UI aún inexistente.
+
+## CU-18 incremento 1 — 2026-11-07
+
+Gate final scripts/check.ps1 384 backend/86 frontend (20 archivos), Ruff/compileall/pip check/typecheck/build PASS. 42 tests nuevos de contratos/resolver sin escritura/contexto, transporte Gemini controlado/redirects/errores/JSON inválido y duplicado, guardado privado y métricas A/B. 90 warnings externos (88 MongoMock TTL y 2 previos), aviso Vite existente. Dataset doce casos; runner fixtures-only ejecutado con hardware cliente, commit/dirty/hashes y estado NOT_RUN, cero llamadas y métricas LLM null. No equivale a inferencia; clave/benchmark real pendientes. Sin nuevos endpoints/UI, Atlas o datos reales modificados. Ver CU-18 y deployment/GEMINI-CU18.md.
+
+## CU-18 integración grupal y formulario — 2026-11-07
+
+Gate final scripts/check.ps1 402 backend/96 frontend (22 archivos), Ruff/compileall/pip check/typecheck/build PASS. 18 pruebas API nuevas: permisos/revisión/contexto compartido, JWT/acceso/cambios en vuelo, idempotencia y carrera de finalización antes de reserva, promoción recuperable, lease/BSON, duplicado inmutable, dos WebSockets editor/observador y reconexión. Nueve pruebas panel/API y una de historial UI nuevas (diez frontend). Inicialmente falló cobertura del harness (nuevas rutas ausentes); se incluyeron. UI detectó clonación de array reactivo de participantes; corregida con objetos planos. Correcciones y gate intermedio en CU-18.
+
+Tras añadir atribución de eventos AI al contexto: 60 pruebas específicas, Ruff/compileall PASS; fixture-only de doce casos NOT_RUN, cero llamadas/métricas LLM null. Smoke TCP HTTP/WS con instancia QA nueva aislada PASS a las 16:59:01 Bolivia: status sin clave/401/503/403, snapshot/conversación y documento intacto; artifacts/cu18/http-readiness.json. Sin proveedor real ni Atlas, sin aceptación visual humana. El proceso QA previo y sus datos temporales permanecen; no se actualizó ese backend en vivo.
+
+## Vista manual independiente CU-18 — 2026-11-07
+
+Readiness HTTP de frontend5176/API8002 PASS 19:30:52 Bolivia: banner temporal, módulo de formulario servido, VITE_API_BASE_URL correcto, CORS para 5176, login ficticio y status configured=false. Cero llamadas a IA; storage MongoMock independiente. Instancia previa no reiniciada. Config, recibos y helper propios ignorados; parser PowerShell del helper PASS, no se detuvo para permitir revisión. Runtime visual falló al iniciar; aceptación UI continúa pendiente. No cambios de implementación ni nueva ejecución de las cifras históricas 402/96.
