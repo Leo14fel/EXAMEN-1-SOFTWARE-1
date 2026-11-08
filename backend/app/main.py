@@ -8,6 +8,7 @@ from pymongo.errors import PyMongoError
 from app.api.auth import router as auth_router
 from app.api.health import router as health_router
 from app.api.projects import router as projects_router
+from app.api.realtime import router as realtime_router
 from app.core.config import settings
 from app.db.mongo_projects import ProjectTooLargeError
 from app.db.mongo_store import close_mongo_store
@@ -61,3 +62,4 @@ app.add_middleware(
 app.include_router(health_router)
 app.include_router(auth_router)
 app.include_router(projects_router)
+app.include_router(realtime_router)

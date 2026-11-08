@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { applyDocumentChanges, type SyncEvent, type SyncStatus } from './editor-sync'
 import {
   addCollaborator,
   createProject as createPersistedProject,
@@ -31,6 +32,7 @@ export const useEditorStore = defineStore('editor', {
     projects: [] as ProjectSummary[],
     collaborators: [] as ProjectCollaborator[],
     effectiveRole: null as ProjectRole | null,
+    syncStatus: 'connecting' as SyncStatus,
     document: null as ProjectDocument | null,
     canUndo: false,
     canRedo: false,
@@ -38,7 +40,34 @@ export const useEditorStore = defineStore('editor', {
     error: null as string | null,
   }),
   actions: {
+    applySyncEvent(event: SyncEvent): boolean {
+      const current = this.document
+      if (!current) return false
+      if (event.type === 'snapshot') {
+        if (event.document.id !== current.id) return false
+        if (event.document.revision < current.revision) return true
+        this.applyProjectState(event)
+      } else {
+        if (event.projectId !== current.id) return false
+        if (event.revision < current.revision) return true
+        if (event.revision !== current.revision) {
+          if (event.baseRevision !== current.revision) return false
+          try {
+            const next = applyDocumentChanges(current, event.changes)
+            if (next.id !== current.id || next.revision !== event.revision) return false
+            this.document = next
+          } catch {
+            return false
+          }
+        }
+        this.canUndo = event.canUndo
+        this.canRedo = event.canRedo
+      }
+      this.effectiveRole = event.effectiveRole
+      return true
+    },
     applyProjectState(state: ProjectEditorState) {
+      if (this.document?.id === state.document.id && this.document.revision > state.document.revision) return
       this.projectId = state.document.id
       this.document = structuredClone(state.document)
       this.canUndo = state.canUndo
@@ -97,7 +126,10 @@ export const useEditorStore = defineStore('editor', {
     },
     async refreshProjectAfterConflict() {
       const document = this.requireDocument()
-      this.applyProjectDocument(await getProject(document.id))
+      const refreshed = await getProject(document.id)
+      if (this.projectId === document.id && (this.document?.revision ?? -1) <= refreshed.revision) {
+        this.applyProjectDocument(refreshed)
+      }
     },
     async loadCollaborators() {
       const document = this.requireDocument()
@@ -124,7 +156,8 @@ export const useEditorStore = defineStore('editor', {
       this.error = null
       try {
         const document = this.requireDocument()
-        this.applyProjectState(await executeProjectCommand(document.id, document.revision, command))
+        const state = await executeProjectCommand(document.id, document.revision, command)
+        if (this.projectId === document.id) this.applyProjectState(state)
       } catch (error) {
         if (error instanceof EditorApiError && error.code === 'PROJECT_REVISION_CONFLICT') {
           await this.refreshProjectAfterConflict()
@@ -142,7 +175,8 @@ export const useEditorStore = defineStore('editor', {
       this.error = null
       try {
         const document = this.requireDocument()
-        this.applyProjectState(await undoProject(document.id, document.revision))
+        const state = await undoProject(document.id, document.revision)
+        if (this.projectId === document.id) this.applyProjectState(state)
       } catch (error) {
         if (error instanceof EditorApiError && error.code === 'PROJECT_REVISION_CONFLICT') {
           await this.refreshProjectAfterConflict()
@@ -160,7 +194,8 @@ export const useEditorStore = defineStore('editor', {
       this.error = null
       try {
         const document = this.requireDocument()
-        this.applyProjectState(await redoProject(document.id, document.revision))
+        const state = await redoProject(document.id, document.revision)
+        if (this.projectId === document.id) this.applyProjectState(state)
       } catch (error) {
         if (error instanceof EditorApiError && error.code === 'PROJECT_REVISION_CONFLICT') {
           await this.refreshProjectAfterConflict()

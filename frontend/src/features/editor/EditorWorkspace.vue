@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref, watch } from "vue";
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from "vue";
 import { storeToRefs } from "pinia";
 import { useEditorStore } from "./editor-store";
 import { createUmlClass, nextClassName } from "./editor-elements";
@@ -17,6 +17,7 @@ import InspectorPanel from "./InspectorPanel.vue";
 import RelationshipDialog from "./RelationshipDialog.vue";
 import { useAuthStore } from "../auth/auth-store";
 import { downloadProjectXmi } from "./editor-api";
+import { connectProjectSync } from "./editor-sync";
 
 const editorStore = useEditorStore();
 const authStore = useAuthStore();
@@ -30,6 +31,7 @@ const {
   canRedo,
   effectiveRole,
   collaborators,
+  syncStatus,
 } = storeToRefs(editorStore);
 
 const selectedElementId = ref<string | null>(null);
@@ -52,7 +54,7 @@ const projectName = computed(() => {
 });
 const revision = computed(() => document.value?.revision ?? 0);
 const busy = computed(() => loading.value || batchBusy.value);
-const canEdit = computed(() => effectiveRole.value === "EDITOR");
+const canEdit = computed(() => effectiveRole.value === "EDITOR" && syncStatus.value === "connected");
 const isOwner = computed(() => document.value?.ownerId === authStore.user?.id);
 const classes = computed(
   () =>
@@ -267,6 +269,31 @@ function ensureValidSelection(): void {
 
 watch(() => document.value?.revision, ensureValidSelection);
 
+let stopSync: (() => void) | undefined;
+watch([projectId, () => authStore.token], ([id, token]) => {
+  stopSync?.();
+  selectedElementId.value = null;
+  if (!id || !token) return;
+  stopSync = connectProjectSync({
+    projectId: id,
+    token,
+    onEvent: (event) => editorStore.applySyncEvent(event),
+    onStatus: (status) => {
+      editorStore.syncStatus = status;
+    },
+    onForbidden: (code) => {
+      if (code === 4401) authStore.clearSession();
+      else {
+        editorStore.document = null;
+        editorStore.projectId = null;
+        editorStore.effectiveRole = null;
+        editorStore.error = "El acceso al proyecto ya no está disponible.";
+      }
+    },
+  });
+}, { immediate: true });
+onUnmounted(() => stopSync?.());
+
 onMounted(loadProjects);
 </script>
 
@@ -329,13 +356,16 @@ onMounted(loadProjects);
             <v-chip size="small" variant="tonal" color="primary">
               Revisión {{ revision }}
             </v-chip>
+            <v-chip v-if="projectId" size="small" variant="tonal" :color="syncStatus === 'connected' ? 'success' : 'warning'" role="status">
+              {{ syncStatus === 'connected' ? 'En tiempo real' : syncStatus === 'unavailable' ? 'Sin acceso' : 'Reconectando…' }}
+            </v-chip>
             <v-chip
               v-if="effectiveRole"
               size="small"
               variant="tonal"
-              :color="canEdit ? 'secondary' : 'warning'"
+              :color="effectiveRole === 'EDITOR' ? 'secondary' : 'warning'"
             >
-              {{ canEdit ? "Editor" : "Solo lectura" }}
+              {{ effectiveRole === 'EDITOR' ? "Editor" : "Solo lectura" }}
             </v-chip>
             <v-btn
               v-if="isOwner"
