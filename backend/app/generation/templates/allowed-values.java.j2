@@ -1,0 +1,16 @@
+package {{ options.package_name }}.validation;
+
+import jakarta.validation.Constraint;
+import jakarta.validation.Payload;
+import java.lang.annotation.*;
+
+@Documented
+@Constraint(validatedBy = AllowedValuesValidator.class)
+@Target({ElementType.FIELD, ElementType.PARAMETER, ElementType.RECORD_COMPONENT})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface AllowedValues {
+    String[] value();
+    String message() default "Value is outside the declared enumeration";
+    Class<?>[] groups() default {};
+    Class<? extends Payload>[] payload() default {};
+}

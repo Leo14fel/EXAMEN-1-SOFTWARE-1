@@ -1,0 +1,33 @@
+package {{ options.package_name }}.errors;
+
+import jakarta.validation.ConstraintViolationException;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.http.*;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.server.ResponseStatusException;
+
+@RestControllerAdvice
+public class ApiErrors {
+    private ResponseEntity<ProblemDetail> problem(HttpStatusCode status, String detail) {
+        return ResponseEntity.status(status).body(ProblemDetail.forStatusAndDetail(status, detail));
+    }
+
+    @ExceptionHandler({DataIntegrityViolationException.class, jakarta.persistence.EntityExistsException.class,
+        org.hibernate.exception.ConstraintViolationException.class})
+    public ResponseEntity<ProblemDetail> conflict(Exception exception) {
+        return problem(HttpStatus.CONFLICT, "A declared data constraint prevents this operation");
+    }
+
+    @ExceptionHandler({MethodArgumentNotValidException.class, ConstraintViolationException.class,
+        HttpMessageNotReadableException.class})
+    public ResponseEntity<ProblemDetail> invalid(Exception exception) {
+        return problem(HttpStatus.BAD_REQUEST, "Request does not match the declared schema");
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ProblemDetail> status(ResponseStatusException exception) {
+        return problem(exception.getStatusCode(), exception.getReason());
+    }
+}

@@ -25,6 +25,7 @@ class ClassProfile(DomainModel):
         default=None, alias="tableName", pattern=r"^[a-z][a-z0-9_]{0,62}$"
     )
     primary_key_attribute_id: UUID | None = Field(default=None, alias="primaryKeyAttributeId")
+    read_only: bool = Field(default=False, alias="readOnly")
 
 
 class AttributeProfile(DomainModel):
@@ -34,6 +35,8 @@ class AttributeProfile(DomainModel):
     required: bool = False
     unique: bool = False
     indexed: bool = False
+    searchable: bool = False
+    sortable: bool = False
 
 
 class GenerationProfile(DomainModel):
