@@ -22,6 +22,7 @@ import PresencePanel from "./PresencePanel.vue";
 import GroupSessionPanel from "./GroupSessionPanel.vue";
 import InvitationManager from "./InvitationManager.vue";
 import InvitationRedeem from "./InvitationRedeem.vue";
+import RelationalPreview from "./RelationalPreview.vue";
 
 const editorStore = useEditorStore();
 const authStore = useAuthStore();
@@ -51,6 +52,7 @@ const newProjectName = ref("");
 const batchBusy = ref(false);
 const collaboratorsDialogOpen = ref(false);
 const redeemDialogOpen = ref(false);
+const relationalDialogOpen = ref(false);
 const collaboratorEmail = ref("");
 const collaboratorRole = ref<ProjectRole>("EDITOR");
 const canvasRef = ref<{ fitContent: () => void } | null>(null);
@@ -436,6 +438,9 @@ onMounted(loadProjects);
             >
               Descargar XMI
             </v-btn>
+            <v-btn size="small" variant="tonal" prepend-icon="mdi-database-outline" :disabled="busy" @click="relationalDialogOpen = true">
+              Modelo relacional
+            </v-btn>
             <v-btn
               size="small"
               variant="text"
@@ -606,6 +611,13 @@ onMounted(loadProjects);
           </v-btn>
         </div>
 
+        <v-dialog v-model="relationalDialogOpen" max-width="1120" scrollable>
+          <v-card>
+            <v-card-title>Modelo relacional</v-card-title>
+            <v-card-text><RelationalPreview v-if="relationalDialogOpen && document" :key="document.id" :project-id="document.id" :revision="revision" /></v-card-text>
+            <v-card-actions><v-spacer /><v-btn @click="relationalDialogOpen = false">Cerrar</v-btn></v-card-actions>
+          </v-card>
+        </v-dialog>
         <v-dialog v-model="createProjectDialogOpen" max-width="420">
           <v-card>
             <v-card-title>Nuevo proyecto</v-card-title>
