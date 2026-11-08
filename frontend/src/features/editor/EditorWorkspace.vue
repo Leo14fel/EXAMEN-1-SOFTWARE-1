@@ -20,6 +20,8 @@ import { downloadProjectXmi } from "./editor-api";
 import { connectProjectSync, type PresenceConnection } from "./editor-sync";
 import PresencePanel from "./PresencePanel.vue";
 import GroupSessionPanel from "./GroupSessionPanel.vue";
+import InvitationManager from "./InvitationManager.vue";
+import InvitationRedeem from "./InvitationRedeem.vue";
 
 const editorStore = useEditorStore();
 const authStore = useAuthStore();
@@ -48,6 +50,7 @@ const createProjectDialogOpen = ref(false);
 const newProjectName = ref("");
 const batchBusy = ref(false);
 const collaboratorsDialogOpen = ref(false);
+const redeemDialogOpen = ref(false);
 const collaboratorEmail = ref("");
 const collaboratorRole = ref<ProjectRole>("EDITOR");
 const canvasRef = ref<{ fitContent: () => void } | null>(null);
@@ -397,6 +400,7 @@ onMounted(loadProjects);
             <v-btn size="small" variant="tonal" prepend-icon="mdi-file-import-outline" :disabled="busy" @click="importFileInput?.click()">
               Importar XMI como proyecto nuevo
             </v-btn>
+            <v-btn size="small" variant="text" :disabled="busy" @click="redeemDialogOpen = true">Canjear invitación</v-btn>
             <v-chip size="small" variant="tonal" color="secondary">
               Proyecto {{ shortProjectId }}
             </v-chip>
@@ -630,6 +634,13 @@ onMounted(loadProjects);
           </v-card>
         </v-dialog>
 
+        <v-dialog v-model="redeemDialogOpen" max-width="560">
+          <v-card>
+            <v-card-title>Canjear invitación</v-card-title>
+            <v-card-text><InvitationRedeem v-if="redeemDialogOpen" @accepted="redeemDialogOpen = false" /></v-card-text>
+            <v-card-actions><v-spacer /><v-btn @click="redeemDialogOpen = false">Cerrar</v-btn></v-card-actions>
+          </v-card>
+        </v-dialog>
         <v-dialog v-model="collaboratorsDialogOpen" max-width="560">
           <v-card>
             <v-card-title>Colaboradores</v-card-title>
@@ -688,6 +699,7 @@ onMounted(loadProjects);
                   title="No hay colaboradores"
                 />
               </v-list>
+              <InvitationManager v-if="collaboratorsDialogOpen && isOwner && projectId" :key="projectId" :project-id="projectId" />
             </v-card-text>
             <v-card-actions
               ><v-spacer /><v-btn @click="collaboratorsDialogOpen = false"
