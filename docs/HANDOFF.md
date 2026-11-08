@@ -1,5 +1,7 @@
 # Handoff
 
+> Actualización Git, 2026-11-07: el usuario autorizó registrar y subir todo el avance. Los cambios se organizaron por CU, conservando la versión final verificada (402 backend/96 frontend, estático/build PASS). Destino: origin/feat/xmi-export; main no se modifica. La confirmación del envío depende de comprobar el SHA remoto al terminar. Los párrafos anteriores al corte de publicación son históricos; consultar delivery/RELEVO-EQUIPO.md para incorporarse al equipo. CU-18 sigue pendiente de clave/benchmark reales.
+
 ## Punto estable
 
 CU-25 DONE en tres incrementos. MongoDB Atlas es la autoridad normal del editor y PERSISTENCE_BACKEND=mongodb el valor por defecto y local. PostgreSQL 17.6 original sigue intacto; SQLAlchemy/Alembic y adaptador SQL se conservan para recuperación y herramientas legacy. No se hizo commit/push. Comandos exactos en CU-25, rama actual feat/xmi-export.

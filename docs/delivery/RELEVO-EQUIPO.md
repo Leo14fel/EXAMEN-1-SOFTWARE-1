@@ -71,9 +71,9 @@ El segundo comando debe indicar NOT_RUN, no calidad LLM aprobada. Con clave, eje
 
 ## Git y copia de fuentes
 
-Rama observada: feat/xmi-export. HEAD observado: c3bbdc34af1b87e3c2e832af8c619122bdc33a18. Existen cambios locales y archivos nuevos de varios CUs sin commit; clonar/pullar esa rama no transmite por sí solo este avance.
+Rama observada: feat/xmi-export. HEAD observado: c3bbdc34af1b87e3c2e832af8c619122bdc33a18. En el corte inicial existían cambios locales de varios CUs sin commit. Después, el usuario autorizó registrarlos y subirlos: el contenido se organizó en commits separados por CU y soporte/documentación. Para obtener el avance versionado, usar la rama feat/xmi-export una vez sincronizada con origin; revisar git log y el estado remoto, sin copiar .env o artifacts.
 
-No se hicieron commits/push automáticos. Antes de repartir ramas con la otra persona, organizar una base compartida revisada: commits separados por CU y selección de hunks en archivos compartidos. No ejecutar git add . ni usar un único commit para todos los CUs. Los comandos históricos de cierre deben revisarse contra el estado actual; no copiarlos de forma ciega.
+La publicación fue autorizada expresamente por el usuario después del corte inicial. Se preparó una base compartida con commits separados por CU y selección de contenido en archivos compartidos, conservando el resultado final verificado. La sincronización remota se confirma al terminar el envío. No ejecutar git add . ni usar un único commit para todos los CUs. Los comandos históricos de cierre deben revisarse contra el estado actual; no copiarlos de forma ciega.
 
 Se preparará una copia local de fuentes para conservar el estado actual sin secretos, dependencias instaladas, datos de bases, artifacts ni .git. Sirve de respaldo/revisión, no sustituye los commits ni una instalación probada en la computadora del compañero. La copia no se publica ni se envía a nadie automáticamente. Configurar credenciales por separado; nunca copiar backend/.env ni respaldos reales al paquete de trabajo.
 
@@ -82,3 +82,16 @@ Se preparará una copia local de fuentes para conservar el estado actual sin sec
 Informe actualizado con funciones reales y límites, matriz del docente, casos de uso, arquitectura, procedimiento de ejecución y registros de pruebas. Añadir capturas reales de roles, colaboración remota, IA grupal por solicitud, voz, resumen de avances, reapertura persistente y push en dispositivo cuando existan. Incluir errores/correcciones y revisión/fecha del código; ocultar claves, tokens y códigos de invitación.
 
 Pendientes RP-01/rúbrica, RP-02/texto-voz y RP-03/NoSQL generado permanecen en la [matriz de requisitos](../requirements/SECOND-PARTIAL.md). No resolverlos por suposición ni convertir la conformidad general del usuario con la pantalla en aprobación integral.
+
+## Obtener la base compartida
+
+Después de confirmar el envío a GitHub, en una computadora nueva:
+
+```powershell
+git clone --branch feat/xmi-export https://github.com/Leo14fel/EXAMEN-1-SOFTWARE-1.git
+cd EXAMEN-1-SOFTWARE-1
+```
+
+Si ya existe una copia, conservar primero cualquier cambio local, luego consultar origin y actualizar mediante fast-forward. Cada persona puede crear su rama desde esa base, por ejemplo codex/cu18-backend y codex/cu18-frontend-qa. Mantener un responsable por archivo compartido y un único CU activo. Las credenciales, respaldos reales y dependencias instaladas permanecen fuera del repositorio; seguir README.md y las guías de entorno.
+
+Pruebas de la versión final antes de publicar: 402 backend/96 frontend, estático/tipos/build PASS (7 de noviembre). La organización de commits no declara IA real ni benchmark aprobados, ni cierre de CU-18.

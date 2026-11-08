@@ -1,5 +1,7 @@
 # Estado real
 
+> Actualización Git, 2026-11-07: el usuario autorizó registrar y subir todo el avance. Los cambios se organizaron por CU, conservando la versión final verificada (402 backend/96 frontend, estático/build PASS). Destino: origin/feat/xmi-export; main no se modifica. La confirmación del envío depende de comprobar el SHA remoto al terminar. Los párrafos anteriores al corte de publicación son históricos; consultar delivery/RELEVO-EQUIPO.md para incorporarse al equipo. CU-18 sigue pendiente de clave/benchmark reales.
+
 Actualizado: 2026-11-07, America/La_Paz.
 
 ## Último CU cerrado
