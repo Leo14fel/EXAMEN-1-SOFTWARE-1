@@ -1,134 +1,114 @@
-# Arquitectura inicial
+# Arquitectura: estado actual y objetivo
 
-## Alcance de esta fundación
+## Estructura existente
 
-```text
-Monorepo
-├── frontend/  -> herramienta CASE web
-├── backend/   -> API de la herramienta CASE
-└── docs/      -> especificación y estado
-```
-
-No se implementan todavía:
-
-- dominio UML completo;
-- colaboración realtime;
-- IA/STT;
-- importación XMI;
-- generadores Spring Boot;
-- generador Flutter;
-- infraestructura AWS.
-
-## Aplicación principal
+Monorepo con frontend Vue 3/TypeScript/Vuetify/Pinia y Vue Flow, backend Python/FastAPI y docs. Pydantic define el dominio y los contratos actuales.
 
 ```text
-Vue 3 + TypeScript
-        |
-        | HTTP / WebSocket (futuro)
-        v
-FastAPI + Python
-        |
-        v
-PostgreSQL
+Vue / Pinia / Vue Flow (proyección)
+             | HTTP autenticado + UmlCommand + baseRevision
+             v
+FastAPI / autorización por proyecto
+             v
+UmlCommandBus -> executor -> ProjectDocument
+             v
+MongoStore / MongoDB Atlas (persistencia actual)
 ```
 
-## Salidas futuras definidas por el producto
+CU-08 añade JWT/Argon2 y ownership; CU-09 memberships EDITOR/VIEWER y administración por owner. La exportación XMI reutiliza autorización de lectura y el modelo canónico. CU-10 implementa colaboración WebSocket con cliente nativo y deltas canónicos; aceptación Atlas/visual pendiente. IA todavía no implementada.
+
+## Invariantes que se conservan
+
+ProjectDocument mantiene UUID, metadata, ownerId, revisión, timestamps UTC, CanonicalUmlModel y DiagramLayout. El modelo semántico no contiene layout; Vue Flow lo proyecta y no decide reglas de dominio.
+
+Clases, atributos, operaciones/parámetros y relaciones mantienen UUIDs globalmente únicos. Association tiene extremos neutrales; aggregation/composition van de todo a parte; generalization de hija a padre. Multiplicidades se mantienen en el dominio. Autoherencia y ciclos de herencia se rechazan; association/aggregation/composition pueden ser autorrelaciones.
+
+Cada mutación pasa por comandos tipados y executor, sin lógica duplicada en frontend. Drag se confirma por SetNodeLayoutCommand; auto-layout usa d3-dag y comandos de layout. El inspector conserva borradores locales sin sobrescribirlos con respuestas externas. La validación semántica está separada de invariantes estructurales y restricciones específicas de comandos.
+
+Undo/Redo mantiene hasta 100 snapshots efímeros. La revisión es monótona; identidad, ownership y creación se conservan. El lock process-local protege el bus local y el CAS Mongo conserva atomicidad y concurrencia entre procesos. Un lock en memoria por sí solo no es garantía distribuida.
+
+## Objetivo integral del segundo parcial (implementado parcialmente)
 
 ```text
-CanonicalUmlModel
-       |
-       +--> Backend generado: Java 21 + Spring Boot
-       |
-       +--> Mobile generado: Flutter + Dart -> Android
+Editores web autorizados + observador móvil
+                    | HTTP / WebSocket
+                    v
+FastAPI: acceso, sesión grupal, actividad, comandos
+       |                     |                |
+       v                     v                v
+NoSQL cloud          IA cloud por pedido    Push
+estado/contexto      respuesta grupal       móvil
 ```
 
-La aplicación Flutter generada no debe confundirse con el frontend web Vue del producto principal.
+CU-25 implementó y verificó almacenamiento Atlas, migración y recuperación sin perder usuarios, acceso o documentos. CU-10/11 incorporan sincronización y presencia; CU-26 persistencia de conversación/actividad; CU-18/19/27 IA/voz y consultas; CU-23 despliegue; CU-28 visor/push. El roadmap PUDS es la fuente única de orden y dependencias.
 
-## Base incluida hoy
+La conversación y actividad están separadas del modelo UML; referencia a proyecto/revisión no crea otra fuente semántica. La presencia efímera no equivale al historial persistido. La IA usa contexto compartido por sesión, no conversaciones privadas ni una instancia física exclusiva obligatoria. Mutaciones solo por solicitud autorizada, con revisión vigente, validación, persistencia y posterior broadcast.
 
-- `GET /health` en FastAPI, independiente de PostgreSQL.
-- `GET /health/db` para verificar FastAPI -> SQLAlchemy -> PostgreSQL.
-- configuración central mínima;
-- capa de sesión SQLAlchemy preparada;
-- Alembic preparado, sin migraciones de dominio;
-- Vue/Vuetify/Pinia preparados;
-- Vue Flow y d3-dag instalados pero sin inventar el editor UML;
-- smoke test frontend;
-- smoke test backend;
-- PostgreSQL local de Windows validado en `localhost:5432/examen_sw1`.
-- Docker Compose como alternativa reproducible opcional en `localhost:55432` hacia `5432` dentro del contenedor.
+## Salidas generadas independientes
 
-## Dominio UML base
+CanonicalUmlModel → RelationalModel → backend Java 21/Spring Boot/PostgreSQL; OpenAPI/Postman/Manifest y CRUD Flutter/Dart Android. No confundir esa salida con el visor móvil informativo de la herramienta CASE, cuya tecnología todavía no está elegida.
 
-```text
-ProjectDocument
-├── id, metadata, ownerId, revision, createdAt, updatedAt
-├── umlModel: CanonicalUmlModel
-└── diagramLayout: DiagramLayout
-```
+## Límites
 
-`CanonicalUmlModel` es la fuente semántica canónica y conserva elementos UML identificados. `DiagramLayout` contiene exclusivamente posiciones y tamaños visuales asociados a esos UUIDs. El layout no es fuente de verdad y no contiene semántica UML.
+NoSQL ya usa MongoDB Atlas; IA cloud, cliente móvil y push se seleccionan cuando sus CUs lo necesitan. No se fijan nuevos contratos aquí. Offline/LAN conserva objetivo anterior con alcance de aceptación pendiente de contrastar con primer parcial. No se elimina código SQL hasta disponer de un reemplazo probado y recuperación verificada.
 
-Los elementos top-level forman una union discriminada por `kind`: `UmlClass`, `UmlAssociation`, `UmlAggregation`, `UmlComposition` y `UmlGeneralization`. Las relaciones conservan semantica (`sourceId`, `targetId` y multiplicidades cuando aplican), pero no son nodos visuales. `DiagramLayout.nodes` solo puede referenciar clases. La identidad UUID es global entre elementos top-level y miembros anidados.
+## Adaptación implementada en CU-25
 
-`models.py` conserva contratos Pydantic e invariantes estructurales. `app.domain.uml.validation` contiene el validador semantico puro `validate_uml_model`, que recibe un `CanonicalUmlModel` inmutable y devuelve `UmlValidationResult` con diagnosticos tipados; no corrige el modelo ni lanza excepciones por errores UML normales. Esta capa sera reutilizada por las futuras entradas, persistencia y generacion.
+La dependencia get_db_session selecciona SQL Session o MongoStore según PERSISTENCE_BACKEND (por defecto mongodb tras el corte verificado). Las funciones de almacenamiento conservan sus contratos y DTOs; MongoStore no abre sesiones SQL. Usuarios Mongo tienen email único normalizado y hash Argon2. La envoltura del documento Mongo guarda _memberships; la conversión canónica la excluye de UML/layout y de las respuestas.
 
-## Mutaciones UML
+El CAS Mongo comprueba actor owner/editor y revisión en la misma operación, además de identidad/creación inmutables. Modificar memberships no cambia la revisión UML. Las operaciones Mongo se confirman de forma atómica, mientras commit/rollback solo se aplican a SQL. No se duplica Command Bus ni se persiste su caché Undo/Redo. Los fallos invalidan el bus y se devuelven sin detalles de conexión. El cliente Mongo se reutiliza por proceso y cierra en lifespan.
 
-```text
-UmlCommand -> UmlCommandBus -> UmlCommandExecutor -> ProjectDocument
-```
+Siete escenarios API sobre Atlas y regresión completa PASS; migración de 3 usuarios/15 proyectos/2 permisos y recuperación tras reinicio real PASS. SQL original se conserva intacto y respaldado, con 13 propietarios legacy sin cuenta asociada preservados. El adaptador SQL queda para origen/recuperación controlada, fuera del camino normal CASE. El resto de capacidades futuras de este documento sigue sin implementarse.
 
-Las entradas futuras manual, canvas, texto, voz, imagen, XMI, colaboracion y API deberan construir un `UmlCommand` Pydantic discriminado por `commandType`; no modifican `ProjectDocument` directamente. El executor es puro y construye un documento nuevo independiente de sus entradas, mientras que el bus mantiene snapshots en memoria para undo/redo y aplica revision monotona y `updatedAt` nuevo. El bus entrega copias profundas a consumidores externos para encapsular su estado. El historial de undo conserva como maximo 100 snapshots, descartando el mas antiguo al superar ese limite para acotar memoria. La validacion semantica de CU-04 queda separada: los comandos solo bloquean invariantes estructurales.
 
-## Regla de evolución
+## CU-10: suscripción a estado persistido
 
-No crear arquitectura para una capacidad futura hasta que un caso de uso aprobado la necesite.
+HTTP conserva comandos/CAS; /projects/{UUID}/sync autentica con JWT en primer mensaje y verifica Origin. Snapshot inicial/recuperación y deltas de JSON canónico sobre baseRevision. Cada conexión consulta la autoridad cada 500 ms (más latencia), fuera del event loop, revalidando JWT/usuario/permisos; detecta escrituras de otros procesos sin broker. No difunde el bus no confirmado ni cambia UML por mensajes WebSocket. Revisiones intermedias pueden agruparse, no es historial de actividad. Consulta por conexión implica coste proporcional; carga/optimización no medidas. Undo/Redo sigue efímero por proceso.
 
-## Editor persistente - CU-07
+Pinia aplica deltas atómicos, rechaza huecos y recupera snapshot, evita respuestas HTTP atrasadas y limpia suscripción al cambiar proyecto/sesión. Reconexión acotada, estado visible y edición bloqueada mientras no sincroniza. Pruebas locales y TCP MongoMock PASS; Atlas/visual pendientes, sin afirmar despliegue remoto.
 
-```text
-Vue / Pinia (proyeccion cliente)
-        |
-        | HTTP + UmlCommand JSON + baseRevision
-        v
-FastAPI /projects
-        |
-        v
-Lock por proyecto + UmlCommandBus canonico
-        |
-        v
-ProjectDocument -> PostgreSQL
-```
 
-El frontend lista, crea y abre proyectos persistidos. Pinia y Vue Flow reciben una proyeccion autoritativa; las mutaciones pasan por `/projects/{projectId}/commands`, Undo y Redo incluyen la revision actual. Ante conflicto de revision el frontend recarga el documento y descarta el historial visual. El `ownerId` temporal sigue siendo estructural hasta CU-08.
+## CU-11: presencia efímera
 
-## Proyeccion Vue Flow - CU-06 Incremento 2
+Negociación opt-in presence=true al autenticar WebSocket; mensajes presence separados de snapshot/patch. Colección Mongo presence (mismo prefijo aislado en tests), TTL expiresAt=0 y filtro por vigencia. UUID de conexión e identidad/rol/hora fijados por servidor. Lease quince segundos; desconexión/revocación elimina solo la sesión, TTL cubre fallos abruptos. Consulta de permisos excluye peers revocados aun antes del cleanup. Heartbeat no modifica ProjectDocument/revisión. No es un historial persistente ni bloqueo de edición.
 
-`ProjectDocument` sigue siendo la unica fuente de verdad semantica. `projectDocumentToFlow()` deriva de manera determinista `Node[]` y `Edge[]` para `@vue-flow/core`: clases se convierten en nodes y relaciones top-level en edges. `DiagramLayout` se consume solo para posiciones/dimensiones existentes; una posicion fallback sin layout es exclusivamente visual y no muta el documento.
+Cliente agrupa controles a 2 Hz, servidor agrupa posiciones pendientes; controles de identidad falsos se rechazan. Avatares/rol/última actividad, estado de borrador, selección, cursor con pan/zoom y avisos temporales. SQL legacy no ofrece presencia distribuida. Cloud/visual diferidos; pruebas locales y TCP MongoMock aprobados.
 
-Incremento 2 mantiene `nodesDraggable=false`, `nodesConnectable=false` y no ofrece borrado. Zoom, pan, seleccion, Background y Controls son interaccion visual local. La persistencia de posicion mediante `SetNodeLayoutCommand` pertenece al Incremento 3.
 
-## Edicion manual del canvas - CU-06 Incremento 3
+## CU-26: ledger grupal y reservas recuperables
 
-El canvas permite drag visual, pero solo persiste la posicion al finalizar el movimiento mediante `SetNodeLayoutCommand`. Creacion, actualizacion y borrado de elementos utilizan `addElement`, `updateElement` y `removeElement`; Undo/Redo llaman al historial canonico del backend. El inspector nunca modifica `ProjectDocument` directamente.
+Una sesión por proyecto en Mongo sessions. Participantes conocidos y eventos message/activity separados de presencia y UML. Ledger embebido con versión CAS/secuencia, páginas de 50 y límite BSON 16 MiB; no se promete historial ilimitado. Reservas privadas _pendingMessage (permiso atómico) y _pendingActivity (misma escritura CAS del proyecto) se promueven idempotentemente y se limpian por ID. Tras fallo, la lectura recupera; no se reconstruyen autores históricos. Promoción tardía puede ordenar el evento después de su fecha original. IDs de actividad usan prefijo reservado separado de UUID de mensajes.
 
-`d3-dag` calcula posiciones de auto-layout en frontend. Cada posicion calculada se envia despues como `SetNodeLayoutCommand`, por lo que el documento canonico sigue siendo la fuente de verdad. En CU-06 el auto-layout puede producir varias entradas de historial, una por clase, porque no existe un comando compuesto y no se introduce uno artificialmente en este CU.
+REST autorizado e intercambio conversation opt-in por WebSocket; texto escapado, identidad/hora de servidor, VIEWER consulta y EDITOR envía. Pinia mezcla páginas por ID/secuencia, retiene borrador/ID tras fallo y no modifica documento/revisión con mensajes. Nuevo cliente/reinicio recupera desde almacenamiento, sin historial de chat en el bus. Local/TCP MongoMock verificados; Atlas/visual diferidos por usuario; no hay IA integrada todavía.
 
-## Relaciones visuales - UML Editor Completeness
 
-`projectDocumentToFlow()` deriva las relaciones soportadas como edges UML: association conserva una linea simple; aggregation usa diamante hueco en `sourceId`; composition usa diamante lleno en `sourceId`; y generalization usa triangulo hueco en `targetId`. Las multiplicidades de association, aggregation y composition se derivan como labels independientes junto a cada extremo; generalization no recibe labels de multiplicidad.
+## Funciones antiguas reanudadas
 
-Cuando `sourceId == targetId`, el mapper marca un self-loop y el edge Vue Flow reutilizable dibuja una curva Bezier lateral con un hitbox ampliado. El edge sigue usando la seleccion nativa de Vue Flow, por lo que alimenta el mismo inspector y no crea estado semantico paralelo. Association, aggregation y composition pueden usar esta representacion; generalization autorreferenciada permanece bloqueada por el backend.
+CU-21 importador XMI con iterparse acotado, sin DTD/red/entidades; valida el subconjunto canónico y crea proyecto nuevo autenticado. Round-trip semántico sin layout, avisos explícitos para contenido no representado. No se presume interoperabilidad EA real sin su evidencia.
 
-El auto-layout excluye self-loops solo del grafo de `d3-dag`, porque no aportan jerarquia de nodos. No elimina ni modifica la relacion del `ProjectDocument`; todos los edges siguen renderizandose despues del layout. Dependency, Realization, roles de extremo, navegabilidad y asociaciones n-arias no estan implementados.
+CU-09 añade _invitations privado al documento Mongo (excluido de ProjectDocument), solo hash de secreto aleatorio, correo/rol/fechas. Canje y concesión de membership son una escritura atómica condicionada por vigencia/hash/email/rol; consumo/cancelación no cambia revisión UML. Se conserva API de membresías previa. Código solo en respuesta de creación/memoria de UI y body POST al canjear; sin email automático/localStorage. Invitaciones SQL legacy no añadidas; vía normal NoSQL. Gates locales y TCP MongoMock aprobados, QA visual/cloud pendiente.
 
-## Persistencia de proyectos - CU-07 Incremento 1
 
-`projects` conserva una fila por `ProjectDocument`: identidad, owner estructural, metadata, revision y timestamps son columnas tipadas; `uml_model` y `diagram_layout` son columnas `JSONB` separadas. La persistencia no modela elementos UML en tablas relacionales ni reemplaza el documento como fuente canonica. Cada lectura reconstruye el documento mediante Pydantic antes de entregarlo.
+## CU-13: proyección relacional
 
-El Incremento 2 agrega mutaciones en `/projects/{projectId}/commands`, `/undo` y `/redo`. Cada una serializa acceso con un lock process-local por proyecto, lee la revision autoritativa de PostgreSQL y aplica CAS al persistir el documento producido por `UmlCommandBus`. La cache de buses solo mantiene historial local: se descarta ante conflicto o fallo de almacenamiento y no se reconstruye tras reinicio.
+CanonicalUmlModel + GenerationProfile opcional de metadata.generation → RelationalMapper → RelationalModel validado. Sin layout/ownership ni segunda autoridad UML. Perfiles propios required/unique/indexed/PK/nombres/enums separados del modelo semántico. PK técnica UUID o atributo explícito, tipos en allow-list, FKs con tipos coincidentes, 1:1/1:N/N:M, composición acotada y JOINED de padre único. Nombres ASCII deterministas de <=63 bytes, colisiones/metadata inválida bloquean plan. Enums de perfil sobre texto no añaden Enumeration a UML.
 
-## Autenticacion y ownership - CU-08
+GET /projects/{id}/relational-model aplica acceso de lectura y devuelve revisión fuente, modelo o diagnósticos sin mutar. Editor marca vista obsoleta y permite descargar JSON. Cardinalidades avanzadas se conservan como requisitos de runtime/avisos, no restricciones ejecutadas. No DDL/Java/Flutter en este CU; CU-14 deberá resolver/rechazar obligaciones antes de generar. Gates locales y TCP MongoMock PASS; QA visual/cloud diferida.
 
-`users` almacena identidad minima y hash Argon2. Bearer JWT se valida antes de `/projects`; listas se filtran por `owner_id` y recursos ajenos devuelven 404. El dominio UML, locks y CAS no cambian. La migracion agrega usuarios e indice sin FK sobre `projects.owner_id`, preservando UUID legacy no verificables.
+## CU-14: primera base de código generado
+
+app/generation/spring.py recibe RelationalModel revalidado y SpringOptions restringidas. Devuelve fuentes en memoria con templates propios Jinja2/StrictUndefined, sin ejecución, escritura ni lectura de secretos; paquetes/identificadores/literales validados o escapados. Entidades JPA/repositorios/esquema PostgreSQL y configuración externa, con Hibernate validate y sin DDL automático. Rechaza relaciones/identidad compuesta hasta el incremento 2. Gradle/Java compilan el fixture aislado en artifacts, no durante solicitudes de la aplicación. API/UI de descarga aún pendientes.
+
+### CU-14 incremento 2: capacidades generadas
+
+El renderer añade DTOs/servicios transaccionales/controladores y consultas allow-listed mediante JPA Specification. PK técnica omitida en entrada; PK asignada immutable, persist crea sin merge. FK simples son IDs escalares con navegación bidireccional; SQL añade FK tras crear todas las tablas. ReadOnly/searchable/sortable se leen del perfil (false por defecto); solo PK ordenable por defecto. Sin código de negocio inferido. ORM/SQL/constraints probados en PostgreSQL temporal real; planes compuestos/herencia/composición/conteos se rechazan. Sin ejecución de código en generación de fuentes ni nueva API de descarga todavía.
+
+## CU-18: preparación de interpretación cerrada
+
+app/ai contiene contratos Pydantic, contexto acotado, resolver que valida comandos existentes sobre copia y transporte REST Gemini fijo. No se importa en rutas de producción todavía: no hay ejecución, consultas privadas ni cambios autónomos. La futura capa autorizada debe recuperar solo el proyecto/historial permitido y revalidar actor/revisión al persistir. Gemini usa clave backend en header, sin redirect/tools/retries; dataset y runner de evaluación separados. Proveedor/modelo candidato sin inferencia real ni métricas porque falta clave; Qwen local sigue opcional.
+
+### CU-18: solicitudes grupales y persistencia de evaluación
+
+Router AI integra el proveedor únicamente por petición de editor, sobre proyecto/revisión autorizados. Configuración SecretStr no llega al cliente. Events aiRequest/aiResult en sessions: actor humano/IA reservado, solicitud/revisión/estado/intent limitado, nunca copia UML ni comandos persistidos. Reserva privada _aiRequest y marcador _aiSeen en projects coordinan una llamada por ID y un trabajo simultáneo por proyecto; marcador y ledger cuentan para límites BSON. Promoción recuperable y lease interrumpida no vuelven a invocar el proveedor. JWT/cuenta/acceso/revisión se revalidan antes de publicar una propuesta vigente.
+
+AiRequestPanel muestra disponibilidad sin simular conexión, envía revisión/ID, consulta resultado tras incertidumbre y mezcla eventos con el grupo; respuestas tardías de otro proyecto se descartan. CanApply siempre false, sin ruta ni botón de aplicación por texto. Código probado con proveedor controlado/MongoMock, sin llamada real o aceptación cloud todavía.

@@ -1,10 +1,12 @@
 # Documento de producto — Variante 2
 
-> Herramienta CASE colaborativa, offline-first, para modelado UML de clases, generación automática de aplicaciones y operación mediante interfaz, lenguaje natural y voz.
+> Herramienta CASE colaborativa en la nube, para modelado UML de clases, generación automática de aplicaciones y operación mediante interfaz, lenguaje natural y voz.
 
 ## 1. Estado inicial y uso de este documento
 
-Este documento describe un proyecto que **todavía no ha comenzado a implementarse**.
+Este documento define requisitos y decisiones de producto. El estado real vive en `docs/STATUS.md` y los documentos de CU.
+
+La sección 41 incorpora los requisitos del segundo parcial aportados por el usuario. La herramienta CASE evoluciona a NoSQL en la nube; PostgreSQL se conserva para las aplicaciones generadas. No se elimina ninguna capacidad anterior sin contrastar el enunciado del primer parcial.
 
 No contiene:
 - estados de avance;
@@ -44,7 +46,7 @@ La solución deberá producir:
 - asistente de texto;
 - asistente de voz.
 
-El sistema deberá poder funcionar sin Internet para sus capacidades esenciales.
+El objetivo previo de capacidades esenciales sin Internet se conserva con el tratamiento y la aclaración del primer parcial establecidos en la sección 19; no sustituye los requisitos cloud del segundo parcial.
 
 ---
 
@@ -93,9 +95,8 @@ El canvas nunca será la fuente de verdad.
 
 - Python 3.13+
 - FastAPI
-- SQLAlchemy 2.0 + Alembic
+- MongoDB Atlas sobre AWS + PyMongo 4.19.0 para persistencia NoSQL cloud
 - WebSockets de FastAPI
-- PostgreSQL
 - PyJWT + pwdlib con Argon2
 - Pydantic 2
 
@@ -109,15 +110,15 @@ El canvas nunca será la fuente de verdad.
 
 ### IA, visión y voz
 
-- runtime: Hugging Face Transformers + PyTorch
-- texto: Qwen3 1.7B Instruct en ejecución local
+- runtime local: Hugging Face Transformers + PyTorch
+- texto: proveedor cloud por decidir en CU-18; Qwen3 1.7B local opcional
 - visión: Qwen2.5-VL 3B Instruct local para imagen → UML
 - STT: faster-whisper sobre CTranslate2
 - preprocesamiento de imagen: Pillow + scikit-image
 
 ### Criterio de la variante
 
-Esta variante prioriza productividad y tipado de datos con Pydantic. La parte de IA se mantiene en Python sin un servidor de inferencia separado obligatorio.
+Esta variante prioriza productividad y tipado de datos con Pydantic. La integración de IA se mantiene en Python y debe admitir un proveedor cloud; la inferencia local es opcional.
 
 ---
 
@@ -147,13 +148,17 @@ La aplicación principal será una aplicación web implementada con Vue 3 + Type
 
 Flutter no reemplaza el frontend web principal.
 
-La tecnología Flutter se utilizará exclusivamente para la salida móvil Android generada por la herramienta. Por lo tanto existirán dos conceptos independientes:
+La tecnología Flutter permanece decidida para la salida móvil Android generada por la herramienta. Deben distinguirse estos dos conceptos de generación del visor CASE descrito en 5.0:
 
 frontend web principal de la herramienta CASE: Vue 3 + TypeScript;
 aplicación móvil generada: Flutter + Dart para Android.
 
 La aplicación móvil consumirá la API REST generada a partir del modelo y deberá conservar las capacidades CRUD, relaciones, búsqueda, filtros y asistente que correspondan al modelo generado.
 ---
+
+## 5.0. Visor móvil colaborativo
+
+Además de la aplicación CRUD generada, existirá un cliente móvil de la herramienta CASE para consultar el diagrama en tiempo real y recibir notificaciones push. Será de solo lectura respecto del UML y respetará los permisos del proyecto. Su tecnología y servicio push se decidirán en CU-28; no se presume que generar un CRUD Flutter cubre este requisito.
 
 ## 5.1. Identidad visual e interfaz obligatoria
 
@@ -502,7 +507,7 @@ faster-whisper sobre CTranslate2
   ↓
 Texto
   ↓
-Hugging Face Transformers + PyTorch
+Proveedor IA cloud (alternativa local opcional)
   ↓
 Intención estructurada
   ↓
@@ -521,30 +526,17 @@ El conjunto de operaciones será cerrado.
 
 ---
 
-## 14. IA local
+## 14. IA compartida y ejecución local opcional
 
-Runtime fijo:
+La herramienta deberá funcionar con un proveedor de IA de texto en la nube. Proveedor, modelo, SDK y costos se decidirán en CU-18 y se registrarán con evidencia real. No se exige contratar varios proveedores.
 
-**Hugging Face Transformers + PyTorch**
+Qwen3 1.7B Instruct con Hugging Face Transformers + PyTorch queda como alternativa local opcional. Qwen2.5-VL 3B local se conserva para imagen → UML. No se sustituyen modelos por preferencias del agente.
 
-Modelo de texto:
+El backend intermedia todas las solicitudes: las credenciales no se entregan al cliente. La conversación y el contexto son compartidos por sesión autorizada; no hay chats privados con la IA. Contexto compartido no significa mantener una instancia física exclusiva de un modelo cloud.
 
-**Qwen3 1.7B Instruct en ejecución local**
+La IA explica, revisa, propone y resume avances a petición de participantes autorizados. No inicia trabajo autónomamente. Las mutaciones pasan por comandos cerrados, revisión y permisos vigentes, validación y persistencia autoritativa antes del broadcast. No manipula el canvas ni inventa lógica de negocio.
 
-Modelo multimodal:
-
-**Qwen2.5-VL 3B Instruct local para imagen → UML**
-
-El modelo de texto deberá priorizar:
-
-- baja latencia;
-- extracción de intención;
-- salida estructurada;
-- ejecución local.
-
-El multimodal podrá cargarse bajo demanda.
-
-Los modelos deberán descargarse antes de trabajar offline.
+La ambigüedad entre órdenes por texto y la exigencia de pedir modificaciones por voz se mantiene explícita en la sección 41. No se habilitarán mutaciones textuales nuevas antes de resolverla.
 
 ---
 
@@ -556,14 +548,14 @@ Tecnología fija:
 
 El objetivo será interpretar comandos breves.
 
-No se optimizará inicialmente para:
+No se exige para el segundo parcial:
 
 - reuniones largas;
 - diarización;
 - transcripción profesional;
 - ruido extremo.
 
-La estación anfitriona ejecutará STT por defecto.
+El backend ejecutará STT por defecto; no se envía audio directamente a credenciales de proveedor desde el cliente.
 
 ---
 
@@ -650,66 +642,37 @@ La presencia no incrementará revisión.
 
 ---
 
-## 19. Offline y LAN
+## 19. Operación cloud, offline y LAN
 
-Escenario principal:
+El escenario obligatorio del segundo parcial es multiusuario remoto con persistencia NoSQL en la nube, sesiones retomables y contexto grupal persistente. Un servidor local con clientes LAN no sustituye este escenario.
 
-```text
-Equipo anfitrión
-├── FastAPI
-├── PostgreSQL
-├── Hugging Face Transformers + PyTorch
-├── faster-whisper sobre CTranslate2
-└── realtime
-      │
-      │ LAN / hotspot
-      ▼
-otros clientes
-```
+La operación offline/LAN se conserva como objetivo previo, pendiente de cotejar con el enunciado del primer parcial. No se elimina ni se promete equivalencia cloud/offline antes de esa revisión. No se implementan colas offline, resolución adicional de conflictos ni una segunda fuente persistente por anticipado.
 
-No se requerirá Internet para usar el editor, colaborar en LAN, ejecutar IA/STT o operar la aplicación generada una vez instalados modelos y dependencias.
+IA local opcional no implica por sí misma que toda la aplicación pueda operar sin Internet.
 
 ---
 
 ## 19.1 Despliegue AWS
 
-El producto tendrá un despliegue en AWS. El servicio o combinación exacta de servicios AWS se decidirá en el caso de uso de despliegue correspondiente, sin fijar infraestructura antes de ese momento.
+Se conserva AWS como destino decidido del despliegue. Los servicios concretos se seleccionarán en CU-23, coordinando la persistencia NoSQL elegida en CU-25, sin fijarlos anticipadamente.
 
-El despliegue deberá contemplar:
-
-- frontend Vue;
-- backend FastAPI de la herramienta CASE;
-- PostgreSQL;
-- configuración y secretos externos al código;
-- smoke tests del despliegue.
-
-El despliegue cloud no reemplaza las capacidades esenciales locales/offline del producto.
+El despliegue contempla frontend Vue, backend FastAPI, almacenamiento NoSQL cloud, integración de IA, WebSockets, configuración y secretos externos, procedimiento reproducible y smoke tests. CU-28 incorpora y verifica push sobre el cliente móvil elegido. Los CUs dependientes revalidan el despliegue al incorporar sus capacidades.
 
 ---
 
 ## 20. Persistencia, autenticación y ownership
 
-Persistencia principal:
+Persistencia objetivo de la herramienta CASE: **MongoDB Atlas sobre AWS + PyMongo 4.19.0**. La estrategia de migración se desarrolla en CU-25; región, tier y cuenta se configuran allí con acceso autorizado. JSONB sobre PostgreSQL no satisface este requisito.
 
-**SQLAlchemy 2.0 + Alembic + PostgreSQL**
+Se deben conservar usuarios, credenciales protegidas, propiedad, permisos, UUIDs, revisiones, timestamps, UML y layout separados. La migración requiere respaldo, validación de integridad y plan de recuperación; no se borra la base existente por defecto.
 
-Autenticación:
+Las sesiones guardan participantes, conversación grupal y actividad atribuida suficiente para retomar trabajo y resumir avances. Reconectar recupera documento, revisión y contexto persistidos. El historial de conversación/actividad no es equivalente a los snapshots efímeros de Undo/Redo.
 
-**PyJWT + pwdlib con Argon2**
+Se mantiene revisión optimista y escritura condicional atómica; el diseño concreto depende del motor elegido. No debe anunciarse como aceptado un cambio que no se haya persistido.
 
-Cada proyecto tendrá `ownerId`.
+Se mantienen PyJWT + pwdlib/Argon2 y autorización por proyecto. El propietario administra acceso; EDITOR puede mutar; VIEWER solo lee. Conversación y resúmenes no deben filtrar información de otros proyectos. Los contratos concretos de sesiones e invitaciones se definen solo en el CU que los necesite.
 
-Las consultas de proyecto se filtrarán por autorización.
-
-La futura colaboración mediante invitaciones utilizará conceptualmente:
-
-- ProjectMembership;
-- ProjectInvitation;
-- roles;
-- expiración;
-- token de invitación de un solo uso o uso controlado.
-
-No se fijan rutas HTTP en este documento.
+SQLAlchemy, Alembic y PostgreSQL corresponden al adaptador existente durante la transición; no son el destino de persistencia CASE. PostgreSQL sí sigue decidido para el backend generado de la sección 22.
 
 ---
 
@@ -836,7 +799,7 @@ Esto permitirá resolver de forma determinista expresiones como:
 - recientes;
 - modificados recientemente.
 
-La implementación de auditoría del backend generado se adaptará a **Spring Data JPA + Hibernate**. SQLAlchemy 2.0 + Alembic pertenecen al backend FastAPI de la herramienta CASE.
+La implementación de auditoría del backend generado se adaptará a **Spring Data JPA + Hibernate**. SQLAlchemy 2.0 + Alembic corresponden al adaptador CASE anterior a su migración NoSQL, no al backend generado.
 
 ---
 
@@ -1158,7 +1121,8 @@ Se verificará:
 15. ejecutar una operación textual;
 16. ejecutar una operación equivalente por voz;
 17. importar/exportar XMI;
-18. repetir sin Internet.
+18. verificar el objetivo offline/LAN según sección 19 y la aclaración del primer parcial;
+19. demostrar sesión IA grupal, recuperación de avances y visor móvil con push según sección 41.
 
 No se utiliza un dominio de ejemplo fijo para no contaminar el diseño de los proyectos de los estudiantes.
 
@@ -1191,7 +1155,8 @@ El MVP deberá demostrar:
 21. voz → STT → AssistantCommand;
 22. ejecución validada;
 23. XMI;
-24. funcionamiento offline.
+24. objetivo offline/LAN según sección 19, pendiente de cotejo del primer parcial;
+25. todos los requisitos grupales/cloud/móviles de la sección 41.
 
 Imagen → UML podrá incorporarse una vez estable el pipeline determinista.
 
@@ -1205,7 +1170,7 @@ Imagen → UML podrá incorporarse una vez estable el pipeline determinista.
 3. Validación
 4. UmlCommand + Command Bus
 5. Canvas con @vue-flow/core
-6. Persistencia con SQLAlchemy 2.0 + Alembic
+6. Persistencia NoSQL cloud con revisión optimista (CU-25)
 7. Undo/Redo
 8. Auth + ownership
 9. Realtime con WebSockets de FastAPI
@@ -1219,7 +1184,7 @@ Imagen → UML podrá incorporarse una vez estable el pipeline determinista.
 17. Generador de aplicación móvil Flutter
 18. CRUD genérico Flutter
 19. AssistantCommand
-20. Texto → comando usando Hugging Face Transformers + PyTorch
+20. Texto → intención usando proveedor cloud (local opcional); aplicación textual pendiente de aclaración
 21. Ejecutor
 22. STT con faster-whisper sobre CTranslate2
 23. Voz → comando
@@ -1261,9 +1226,8 @@ No se deben copiar identificadores de casos de uso de otro proyecto.
 - Pinia
 - Python 3.13+
 - FastAPI
-- SQLAlchemy 2.0 + Alembic
+- MongoDB Atlas sobre AWS + PyMongo 4.19.0 para persistencia NoSQL cloud
 - WebSockets de FastAPI
-- PostgreSQL
 
 Interoperabilidad
 - UML 2.5.1
@@ -1280,7 +1244,7 @@ Generación
 
 IA / STT
 - Hugging Face Transformers + PyTorch
-- Qwen3 1.7B Instruct en ejecución local
+- IA de texto cloud por decidir en CU-18; Qwen3 1.7B local opcional
 - Qwen2.5-VL 3B Instruct local para imagen → UML
 - faster-whisper sobre CTranslate2
 
@@ -1294,7 +1258,7 @@ Aplicación generada
 
 ## 40. Definición resumida
 
-La aplicación será una herramienta CASE colaborativa y offline-first que permite diseñar modelos UML de clases mediante edición manual, voz, imagen o XMI, mantener una fuente de verdad canónica y generar aplicaciones funcionales.
+La aplicación será una herramienta CASE colaborativa en la nube, con el objetivo previo offline/LAN tratado en la sección 19, que permite diseñar modelos UML de clases mediante edición manual, voz, imagen o XMI, mantener una fuente de verdad canónica y generar aplicaciones funcionales.
 
 La aplicación principal utiliza Vue 3 + TypeScript + Vite como frontend web y FastAPI como backend.
 
@@ -1308,3 +1272,25 @@ A partir del modelo UML, la herramienta generará obligatoriamente:
 - aplicación móvil Flutter + Dart para Android.
 
 Flutter se utilizará para la salida mobile y no reemplazará el frontend web principal en Vue.
+
+
+---
+
+## 41. Requisitos del segundo parcial y criterios de aceptación
+
+La transcripción aportada por el usuario es la referencia recibida del docente; no reemplaza el enunciado original del primer parcial. Las dudas se registran en `docs/requirements/SECOND-PARTIAL.md` y no se resuelven inventando alcance.
+
+1. Conservar todas las capacidades exigidas en el primer parcial. Su cobertura se verificará contra el enunciado original, todavía pendiente de aportar; no se declara cumplida por tener código o documentación.
+2. Varios usuarios autorizados editan el mismo diagrama en tiempo real desde ubicaciones distintas. Todos observan el mismo documento autoritativo; conflictos y reconexión no sobrescriben cambios silenciosamente.
+3. Una conversación de IA grupal por sesión: solicitudes, respuestas e ideas solicitadas visibles para sus participantes, sin canales privados con la IA. Las ideas expresadas como texto no se convierten automáticamente en cambios UML.
+4. Contexto compartido con identidad del autor y actividad atribuida. Si alguien llega tarde, puede solicitar un resumen basado en lo persistido de esa sesión y su diagrama.
+5. La IA actúa solo por solicitud: puede explicar conceptos, revisar elementos, justificar problemas, sugerir ideas y ejecutar modificaciones autorizadas. No diseña ni corrige automáticamente.
+6. Las modificaciones por IA reutilizan UmlCommand, autorización, validación, control de revisión, persistencia y broadcast. Una revisión obsoleta o permisos insuficientes impiden aplicar el cambio.
+7. Voz como entrada requerida; transcripción visible e integración con la conversación grupal. Permitir modificaciones mediante texto queda pendiente de aclarar: el docente también indicó que la IA no diseñará sin petición por voz.
+8. Persistencia NoSQL en la nube para el estado de la herramienta, sesiones, contexto y actividad. Pausar, reiniciar el backend y retomar debe preservar el trabajo registrado. Undo/Redo persistente no se presupone exigido: se conserva su comportamiento existente hasta que un CU lo amplíe.
+9. IA cloud funcional como mínimo; IA local opcional y valorable. Se registran benchmarks reales al introducir o modificar LLM/VLM/STT.
+10. Visor móvil informativo de la herramienta CASE: diagrama actualizado en tiempo real, sin edición UML, con notificaciones push de actualizaciones. Se verificarán permisos, reconexión y recepción push en dispositivo; responsive por sí solo no prueba push.
+11. Mantener Vue y FastAPI. La mención de Spring Boot en la transcripción es permisiva, no una obligación de migrar el backend principal. El backend Spring Boot y el CRUD Flutter generados siguen siendo salidas independientes que no se eliminan por esta ampliación.
+12. La aceptación requiere demostración con dos editores y un observador móvil, interacción grupal, edición por voz, resumen al incorporarse tarde, reapertura tras reinicio, rechazo de acceso no autorizado y push real. Los estados esperados no se registran como pruebas ejecutadas.
+
+La matriz de requisitos y el roadmap determinan cobertura y orden. MongoDB Atlas sobre AWS y PyMongo quedan seleccionados para persistencia CASE. No se fijan todavía proveedor IA/push, rutas, payloads ni una infraestructura de inferencia dedicada. El roadmap es la secuencia operativa; la sección 37 es orientación conceptual y no autoriza adelantar CUs.

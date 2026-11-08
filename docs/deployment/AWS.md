@@ -2,23 +2,14 @@
 
 ## Estado
 
-**No implementado en la fundación.**
+Planificado en CU-23; no implementado. Ver roadmap PUDS para dependencias actuales, incluida persistencia NoSQL de CU-25 y capacidades grupales.
 
-El requisito de AWS está incorporado en `/product.md`. Esta capacidad se trabajará en CU-23 para no mezclar infraestructura con la construcción inicial del dominio.
+## Alcance objetivo
 
-## Alcance mínimo esperado cuando llegue el CU
+Frontend Vue, backend FastAPI, NoSQL cloud, WebSockets, integración IA cloud, secretos externos, configuración reproducible, procedimiento de operación/recuperación y smoke tests remotos. CU-25 selecciona MongoDB Atlas sobre AWS con PyMongo (prueba cloud aún pendiente); los demás servicios se deciden aquí sin anticipar infraestructura.
 
-- frontend web Vue desplegable en AWS;
-- backend FastAPI desplegable en AWS;
-- PostgreSQL accesible desde el backend desplegado;
-- variables/secretos fuera del código;
-- procedimiento de despliegue documentado;
-- smoke test posterior al despliegue.
+Verificar dos clientes remotos autorizados, reconexión y recuperación de sesión/contexto persistente. CU-28 integra y revalida visor móvil y push con evidencia en dispositivo. El backend PostgreSQL generado es una salida independiente, no la base CASE cloud objetivo.
 
-## Decisiones pendientes
+## Límites
 
-La selección exacta de servicios (por ejemplo, hosting del frontend, ejecución del backend y PostgreSQL administrado) se decidirá en el CU de despliegue según costo, restricciones académicas y simplicidad.
-
-## Restricción
-
-AWS no debe borrar la capacidad local/offline definida en `product.md`.
+No se despliega ni se contrata infraestructura durante la preparación documental. Offline/LAN sigue como objetivo previo pendiente del enunciado del primer parcial; no sustituye el escenario cloud. No versionar secretos ni anunciar smoke tests sin ejecutarlos.

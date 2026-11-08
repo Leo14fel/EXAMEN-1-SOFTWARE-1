@@ -1,31 +1,25 @@
 # Restricciones del examen
 
-Este documento registra restricciones que deben mantenerse explícitas durante el desarrollo.
+`product.md` es la fuente de verdad. El segundo parcial se registra y traza en [SECOND-PARTIAL.md](SECOND-PARTIAL.md); el roadmap único vive en PUDS.
 
-## Frontend principal
+## Segundo parcial
 
-- La herramienta CASE principal mantiene el frontend web definido en `product.md`: **Vue 3 + TypeScript + Vite**.
-- Flutter **no reemplaza** este frontend web.
+- Conservar las exigencias del primer parcial; enunciado/rúbrica aún pendientes de aportar.
+- Colaboración multiusuario remota y en tiempo real.
+- IA grupal por solicitud, con contexto compartido, actividad atribuida, explicación, revisión, propuestas y resúmenes; sin conversaciones privadas.
+- Entrada por voz y cambios autorizados difundidos a todos. La autorización de mutaciones por texto requiere aclaración RP-02.
+- NoSQL en la nube y sesiones persistentes retomables. PostgreSQL/JSONB actual no prueba cumplimiento.
+- IA cloud funcional; ejecución local opcional y valorable.
+- Visor móvil de solo lectura UML con actualización realtime y notificaciones push verificadas.
 
-## Mobile
+## Decisiones conservadas
 
-- La salida móvil Android generada deberá utilizar **Flutter + Dart**.
-- No se crea una aplicación Flutter base en esta fundación porque esa salida pertenece a un caso de uso posterior de generación.
+Vue 3/TypeScript/Vite y FastAPI no se reemplazan. Spring Boot sigue decidido para backend generado; la mención del docente sobre backend principal es permisiva. Flutter/Dart sigue siendo salida Android generada, diferente del visor CASE.
 
-## AWS
+AWS sigue siendo destino de despliegue. Motor/proveedor/SDK NoSQL se eligen en CU-25; servicios de despliegue en CU-23; proveedor IA en CU-18 y cliente móvil/push en CU-28. No adelantar infraestructura ni contratos.
 
-- La solución deberá poder desplegarse en **AWS**.
-- El requisito también está incorporado en `/product.md`; este documento no es una fuente alternativa de producto.
-- La selección concreta de servicios AWS se documentará y decidirá cuando llegue el caso de uso de despliegue, evitando introducir infraestructura prematuramente.
-- El despliegue cloud no debe borrar el requisito de capacidades esenciales locales/offline indicado en `product.md`.
+Offline/LAN conserva objetivo previo, pendiente de contrastar con primer parcial; no sustituye cloud obligatorio. PostgreSQL generado se conserva salvo aclaración explícita RP-03.
 
 ## Regla para agentes
 
-Antes de implementar un caso de uso, el agente debe revisar:
-
-1. `/product.md`;
-2. este documento;
-3. el archivo específico del caso de uso;
-4. `docs/STATUS.md`.
-
-El agente no debe sustituir tecnologías ya decididas ni adelantar funcionalidades de casos futuros.
+Orden de lectura obligatorio: product.md → roadmap PUDS → CU activo si existe → PROJECT-CONTEXT → documentación específica (incluido SECOND-PARTIAL). Un CU a la vez, hasta tres incrementos, evidencia real y documentación actualizada. No declarar implementadas capacidades planeadas.
