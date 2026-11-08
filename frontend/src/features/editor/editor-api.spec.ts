@@ -5,6 +5,7 @@ import {
   EditorApiError,
   executeProjectCommand,
   getProject,
+  importProjectXmi,
   listProjects,
   redoProject,
   undoProject,
@@ -192,4 +193,22 @@ describe("editor api", () => {
       code: "ELEMENT_ALREADY_EXISTS",
     });
   });
+});
+
+
+it('importa el archivo XML con autenticación sin enviar ownerId del cliente', async () => {
+  const file = new File(['<xmi/>'], 'modelo.xmi', { type: 'application/xml' });
+  const result = { document, warnings: ['Paquetes aplanados'] };
+  const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(result), {status:201}));
+  vi.stubGlobal('fetch', fetchMock);
+  await expect(importProjectXmi(file)).resolves.toEqual(result);
+  expect(fetchMock).toHaveBeenCalledWith('http://localhost:8000/projects/import/xmi', expect.objectContaining({method:'POST',body:file}));
+});
+
+it('rechaza archivos vacíos o grandes antes de transmitirlos', async () => {
+  const fetchMock = vi.fn();
+  vi.stubGlobal('fetch', fetchMock);
+  await expect(importProjectXmi(new File([], 'empty.xmi'))).rejects.toThrow('2 MiB');
+  await expect(importProjectXmi(new File(['x'.repeat(2*1024*1024+1)], 'large.xmi'))).rejects.toThrow('2 MiB');
+  expect(fetchMock).not.toHaveBeenCalled();
 });

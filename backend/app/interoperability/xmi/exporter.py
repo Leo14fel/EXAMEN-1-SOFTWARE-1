@@ -220,7 +220,9 @@ def _class_type_names(uml_class: UmlClass) -> set[str]:
 def _type_id(
     type_name: str, class_ids_by_name: dict[str, str], primitive_ids: dict[str, str]
 ) -> str:
-    return class_ids_by_name.get(type_name, primitive_ids[type_name])
+    if type_name in class_ids_by_name:
+        return class_ids_by_name[type_name]
+    return primitive_ids[type_name]
 
 
 def _project_name(document: ProjectDocument) -> str:

@@ -64,6 +64,15 @@ export function getProject(projectId: string): Promise<ProjectDocument> {
   return editorRequest(`/projects/${projectId}`);
 }
 
+export async function importProjectXmi(file: File): Promise<{ document: ProjectDocument; warnings: string[] }> {
+  if (!file.size || file.size > 2 * 1024 * 1024) {
+    throw new Error('Selecciona un archivo XMI de hasta 2 MiB.');
+  }
+  return editorRequest('/projects/import/xmi', {
+    method: 'POST', headers: { 'Content-Type': 'application/xml' }, body: file,
+  });
+}
+
 export async function downloadProjectXmi(
   projectId: string,
 ): Promise<{ blob: Blob; filename: string }> {

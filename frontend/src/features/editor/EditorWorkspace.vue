@@ -51,6 +51,20 @@ const collaboratorsDialogOpen = ref(false);
 const collaboratorEmail = ref("");
 const collaboratorRole = ref<ProjectRole>("EDITOR");
 const canvasRef = ref<{ fitContent: () => void } | null>(null);
+const importFileInput = ref<HTMLInputElement | null>(null);
+
+async function importXmiFile(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  try {
+    await editorStore.importXmi(file);
+  } catch {
+    // The store displays errors and retains the current project on rejection.
+  } finally {
+    input.value = '';
+  }
+}
 
 const shortProjectId = computed(
   () => projectId.value?.slice(0, 8) ?? "sin proyecto",
@@ -379,6 +393,10 @@ onMounted(loadProjects);
             >
               Nuevo proyecto
             </v-btn>
+            <input ref="importFileInput" type="file" accept=".xmi,.xml,application/xml,text/xml" hidden @change="importXmiFile" />
+            <v-btn size="small" variant="tonal" prepend-icon="mdi-file-import-outline" :disabled="busy" @click="importFileInput?.click()">
+              Importar XMI como proyecto nuevo
+            </v-btn>
             <v-chip size="small" variant="tonal" color="secondary">
               Proyecto {{ shortProjectId }}
             </v-chip>
@@ -435,6 +453,9 @@ onMounted(loadProjects);
           @click:close="editorStore.error = null"
         >
           {{ error }}
+        </v-alert>
+        <v-alert v-if="editorStore.importWarnings.length" type="warning" variant="tonal" density="compact" class="mb-3" closable @click:close="editorStore.importWarnings = []">
+          <div v-for="warning in editorStore.importWarnings" :key="warning">{{ warning }}</div>
         </v-alert>
 
         <div v-if="loading && !document" class="editor-loading">

@@ -7,6 +7,7 @@ import {
   EditorApiError,
   executeProjectCommand,
   getProject,
+  importProjectXmi,
   listProjects,
   listCollaborators,
   redoProject,
@@ -47,8 +48,36 @@ export const useEditorStore = defineStore('editor', {
     canRedo: false,
     loading: false,
     error: null as string | null,
+    importWarnings: [] as string[],
   }),
   actions: {
+    async importXmi(file: File) {
+      this.loading = true
+      this.error = null
+      this.importWarnings = []
+      try {
+        const result = await importProjectXmi(file)
+        this.applyProjectDocument(result.document)
+        this.effectiveRole = 'EDITOR'
+        this.importWarnings = result.warnings
+        this.projects.unshift({
+          id: result.document.id, ownerId: result.document.ownerId,
+          metadata: result.document.metadata, revision: result.document.revision,
+          createdAt: result.document.createdAt, updatedAt: result.document.updatedAt,
+          effectiveRole: 'EDITOR',
+        })
+        try {
+          await this.loadProjects()
+        } catch {
+          this.error = 'El proyecto se importó correctamente. No se pudo actualizar la lista de proyectos.'
+        }
+      } catch (error) {
+        this.error = messageFromError(error)
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
     applySessionPage(page: SessionPage) {
       if (page.projectId !== this.projectId) return
       const entries = new Map(this.sessionEvents.map((entry) => [entry.id, entry]))
@@ -129,6 +158,7 @@ export const useEditorStore = defineStore('editor', {
       this.error = null
     },
     applyProjectDocument(document: ProjectDocument) {
+      this.importWarnings = []
       this.projectId = document.id
       this.document = structuredClone(document)
       this.canUndo = false

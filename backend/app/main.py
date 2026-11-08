@@ -10,6 +10,7 @@ from app.api.group_sessions import router as group_sessions_router
 from app.api.health import router as health_router
 from app.api.projects import router as projects_router
 from app.api.realtime import router as realtime_router
+from app.api.xmi_import import router as xmi_import_router
 from app.core.config import settings
 from app.db.mongo_projects import ProjectTooLargeError
 from app.db.mongo_store import close_mongo_store
@@ -65,3 +66,4 @@ app.include_router(auth_router)
 app.include_router(projects_router)
 app.include_router(realtime_router)
 app.include_router(group_sessions_router)
+app.include_router(xmi_import_router)
