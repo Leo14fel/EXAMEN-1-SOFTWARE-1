@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import text
 
+from app.core.config import settings
+
 router = APIRouter(tags=["health"])
 
 
@@ -11,6 +13,14 @@ def health() -> dict[str, str]:
 
 @router.get("/health/db")
 def database_health() -> dict[str, str]:
+    if settings.persistence_backend == "mongodb":
+        from app.db.mongo_store import get_mongo_store
+
+        try:
+            get_mongo_store().database.command("ping")
+        except Exception as exc:
+            raise HTTPException(status_code=503, detail="database unavailable") from exc
+        return {"status": "ok", "database": "mongodb"}
     # Importación diferida: el health general no depende del driver PostgreSQL.
     from app.db.session import engine
 

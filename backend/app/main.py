@@ -1,12 +1,54 @@
-from fastapi import FastAPI
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from pymongo.errors import PyMongoError
 
 from app.api.auth import router as auth_router
 from app.api.health import router as health_router
 from app.api.projects import router as projects_router
 from app.core.config import settings
+from app.db.mongo_projects import ProjectTooLargeError
+from app.db.mongo_store import close_mongo_store
 
-app = FastAPI(title=settings.app_name, version="0.0.0")
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    try:
+        yield
+    finally:
+        close_mongo_store()
+
+
+app = FastAPI(title=settings.app_name, version="0.0.0", lifespan=lifespan)
+
+
+@app.exception_handler(PyMongoError)
+async def mongo_storage_error(_: Request, __: PyMongoError) -> JSONResponse:
+    return JSONResponse(
+        status_code=503,
+        content={
+            "detail": {
+                "code": "PERSISTENCE_UNAVAILABLE",
+                "message": "Storage is unavailable",
+            }
+        },
+    )
+
+
+@app.exception_handler(ProjectTooLargeError)
+async def mongo_project_too_large(_: Request, __: ProjectTooLargeError) -> JSONResponse:
+    return JSONResponse(
+        status_code=413,
+        content={
+            "detail": {
+                "code": "PROJECT_DOCUMENT_TOO_LARGE",
+                "message": "Project exceeds storage limit",
+            }
+        },
+    )
+
 
 app.add_middleware(
     CORSMiddleware,

@@ -18,10 +18,12 @@ dependencies = [
   "psycopg[binary]==3.3.5",
   "uvicorn[standard]==0.52.4",
   "lxml==6.0.2",
+  "pymongo==4.19.0",
 ]
 
 [project.optional-dependencies]
 dev = [
+  "mongomock==4.3.0",
   "httpx==0.28.1",
   "pytest==9.1.1",
   "pytest-asyncio==1.4.0",
