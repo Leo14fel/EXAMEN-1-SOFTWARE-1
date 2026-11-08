@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pymongo.errors import PyMongoError
 
+from app.api.ai import router as ai_router
 from app.api.auth import router as auth_router
 from app.api.group_sessions import router as group_sessions_router
 from app.api.health import router as health_router
@@ -65,6 +66,7 @@ app.add_middleware(
 
 app.include_router(health_router)
 app.include_router(auth_router)
+app.include_router(ai_router)
 app.include_router(projects_router)
 app.include_router(realtime_router)
 app.include_router(group_sessions_router)

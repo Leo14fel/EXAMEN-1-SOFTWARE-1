@@ -18,6 +18,20 @@ function page(events: SessionEvent[]): SessionPage { return { projectId: documen
   version: 10, hasEarlier: true, hasMore: false } }
 beforeEach(() => { setActivePinia(createPinia()); vi.clearAllMocks() })
 
+it('muestra solicitudes y resultados de IA como contenido compartido sin tratarlos como cambios UML', () => {
+  const store = ready()
+  store.applySessionPage(page([
+    { ...event(1), kind: 'aiRequest', text: 'Crea Producto' },
+    { ...event(2), kind: 'aiResult', actorName: 'IA · Gemini', text: '<script>no ejecutar</script>', status: 'proposed', canApply: false },
+  ]))
+  const wrapper = mount(GroupSessionPanel)
+  expect(wrapper.text()).toContain('Solicitud a IA:')
+  expect(wrapper.text()).toContain('evaluación sin aplicar cambios')
+  expect(wrapper.text()).toContain('<script>no ejecutar</script>')
+  expect(wrapper.find('script').exists()).toBe(false)
+  expect(store.document).toEqual(document)
+  wrapper.unmount()
+})
 function ready() {
   const store = useEditorStore()
   store.applyProjectDocument(document)

@@ -52,7 +52,21 @@ def append_event(store: MongoStore, project_id: UUID, event: dict) -> dict:
         for existing in session["events"]:
             if existing["id"] == event["id"]:
                 # Retries keep the first accepted server time/name/sequence.
-                keys = ("actorId", "kind", "text", "action", "projectRevision", "elementId")
+                keys = (
+                    "actorId",
+                    "kind",
+                    "text",
+                    "action",
+                    "projectRevision",
+                    "elementId",
+                    "requestId",
+                    "baseRevision",
+                    "status",
+                    "intent",
+                    "code",
+                    "canApply",
+                    "requestedBy",
+                )
                 if any(existing.get(key) != event.get(key) for key in keys):
                     raise HTTPException(409, detail={"code": "SESSION_EVENT_ID_CONFLICT"})
                 return existing
@@ -130,6 +144,9 @@ def flush_pending(
 def recover_session(store: MongoStore, project_id: UUID) -> None:
     flush_pending(store, project_id, "_pendingActivity")
     flush_pending(store, project_id)
+    from app.db.ai_requests import recover_ai
+
+    recover_ai(store, project_id)
 
 
 def queue_message(store: MongoStore, project_id: UUID, user_id: UUID, event: dict) -> dict:

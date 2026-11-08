@@ -42,7 +42,7 @@ async function send() {
       </p>
       <article v-for="entry in store.sessionEvents" :key="entry.id" :class="['session-entry', `session-entry--${entry.kind}`]">
         <div class="text-caption text-medium-emphasis"><strong>{{ entry.actorName }}</strong> · {{ new Date(entry.createdAt).toLocaleString() }}</div>
-        <p v-if="entry.kind === 'message'" class="session-message">{{ entry.text }}</p>
+        <p v-if="entry.kind !== 'activity'" class="session-message"><strong v-if="entry.kind === 'aiRequest'">Solicitud a IA: </strong>{{ entry.text }}<span v-if="entry.kind === 'aiResult'" class="d-block text-caption">Estado: {{ entry.status }} · revisión {{ entry.baseRevision }} · evaluación sin aplicar cambios</span></p>
         <div v-else class="text-body-2">
           {{ sessionActivityLabel(entry) }} · revisión {{ entry.projectRevision }}
           <v-btn v-if="entry.elementId && store.document?.umlModel.elements.some(element => element.id === entry.elementId)"

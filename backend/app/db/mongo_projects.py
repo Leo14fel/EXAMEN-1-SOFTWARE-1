@@ -29,7 +29,16 @@ def project_from_mongo(data: dict[str, Any]) -> ProjectDocument:
     payload = {
         key: value
         for key, value in data.items()
-        if key not in {'_pendingActivity', '_pendingMessage', '_invitations', '_memberships', '_id'}
+        if key
+        not in {
+            "_id",
+            "_memberships",
+            "_pendingMessage",
+            "_pendingActivity",
+            "_invitations",
+            "_aiRequest",
+            "_aiSeen",
+        }
     }
     document = ProjectDocument.model_validate(payload)
     if data.get("_id") != str(document.id):

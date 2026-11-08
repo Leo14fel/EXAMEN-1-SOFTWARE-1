@@ -20,6 +20,7 @@ import { downloadProjectXmi } from "./editor-api";
 import { connectProjectSync, type PresenceConnection } from "./editor-sync";
 import PresencePanel from "./PresencePanel.vue";
 import GroupSessionPanel from "./GroupSessionPanel.vue";
+import AiRequestPanel from "./AiRequestPanel.vue";
 import InvitationManager from "./InvitationManager.vue";
 import InvitationRedeem from "./InvitationRedeem.vue";
 import RelationalPreview from "./RelationalPreview.vue";
@@ -595,6 +596,7 @@ onMounted(loadProjects);
             @create="createRelationship"
           />
           <GroupSessionPanel :key="document.id" @select="selectedElementId = $event" />
+          <AiRequestPanel :key="`ai-${document.id}`" />
         </template>
 
         <div v-else-if="!error" class="editor-loading">

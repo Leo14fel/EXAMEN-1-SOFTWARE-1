@@ -3,7 +3,7 @@ import { authenticatedFetch } from '../../services/api'
 export interface SessionEvent {
   id: string
   sequence: number
-  kind: 'message' | 'activity'
+  kind: 'message' | 'activity' | 'aiRequest' | 'aiResult'
   actorId: string
   actorName: string
   createdAt: string
@@ -11,6 +11,11 @@ export interface SessionEvent {
   action?: string
   projectRevision?: number
   elementId?: string | null
+  requestId?: string
+  baseRevision?: number
+  status?: 'proposed' | 'clarify' | 'unsupported' | 'failed' | 'stale'
+  canApply?: false
+  code?: string
 }
 export interface SessionPage {
   projectId: string
