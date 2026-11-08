@@ -21,6 +21,7 @@ class MongoStore:
         self.database = database
         self.users = database[f"{collection_prefix}users"]
         self.projects = database[f"{collection_prefix}projects"]
+        self.presence = database[f"{collection_prefix}presence"]
         self.project_store = MongoProjectStore(self.projects)
 
     def ensure_indexes(self) -> None:

@@ -3,6 +3,8 @@ import { computed } from 'vue'
 import type { Node } from '@vue-flow/core'
 import { useVueFlow, VueFlow } from '@vue-flow/core'
 import type { DiagramNodeLayout, ProjectDocument } from '../types'
+import type { Participant } from '../editor-sync'
+import { cursorOnCanvas, presenceColor } from '../presence-ui'
 import UmlClassNode from './UmlClassNode.vue'
 import UmlRelationshipEdge from './UmlRelationshipEdge.vue'
 import {
@@ -16,19 +18,30 @@ const props = defineProps<{
   document: ProjectDocument
   selectedElementId: string | null
   busy?: boolean
+  participants?: Participant[]
 }>()
 
 const emit = defineEmits<{
   select: [elementId: string | null]
   moveNode: [payload: { elementId: string; layout: DiagramNodeLayout }]
+  cursor: [position: { x: number; y: number } | null]
 }>()
 
-const { fitView, zoomIn, zoomOut } = useVueFlow()
+const { fitView, zoomIn, zoomOut, screenToFlowCoordinate, viewport } = useVueFlow()
 
 const projection = computed(() =>
   projectDocumentToFlow(props.document, props.selectedElementId),
 )
 const isEmpty = computed(() => projection.value.nodes.length === 0)
+const visiblePeers = computed(() => props.participants ?? [])
+const nodesWithPresence = computed(() => projection.value.nodes.map((node) => {
+  const peer = visiblePeers.value.find((peer) => peer.selectedElementId === node.id || peer.editingElementId === node.id)
+  return peer ? { ...node, style: { outline: `2px solid ${presenceColor(peer.userId)}`, outlineOffset: '4px' } } : node
+}))
+
+function moveCursor(event: PointerEvent): void {
+  emit('cursor', screenToFlowCoordinate({ x: event.clientX, y: event.clientY }))
+}
 
 function selectNode(event: { node: { id: string } }): void {
   emit('select', event.node.id)
@@ -73,7 +86,7 @@ defineExpose({ fitContent })
 </script>
 
 <template>
-  <section class="uml-canvas-shell">
+  <section class="uml-canvas-shell" @pointermove="moveCursor" @pointerleave="emit('cursor', null)">
     <svg class="uml-marker-defs" aria-hidden="true">
       <defs>
         <marker
@@ -120,7 +133,7 @@ defineExpose({ fitContent })
     </div>
 
     <VueFlow
-      :nodes="projection.nodes"
+      :nodes="nodesWithPresence"
       :edges="projection.edges"
       :nodes-draggable="!busy"
       :nodes-connectable="false"
@@ -142,6 +155,12 @@ defineExpose({ fitContent })
       </template>
     </VueFlow>
 
+    <template v-for="peer in visiblePeers" :key="peer.sessionId">
+      <div v-if="peer.cursor" class="remote-cursor" :style="{ ...cursorOnCanvas(peer.cursor, viewport), color: presenceColor(peer.userId) }" aria-hidden="true">
+        <span>➤</span><small>{{ peer.name }}</small>
+      </div>
+    </template>
+
     <div class="uml-canvas-controls" aria-label="Controles del canvas">
       <button type="button" title="Acercar" aria-label="Acercar" @click="handleZoomIn">+</button>
       <button type="button" title="Alejar" aria-label="Alejar" @click="handleZoomOut">−</button>
@@ -161,6 +180,9 @@ defineExpose({ fitContent })
 </template>
 
 <style scoped>
+.remote-cursor { position: absolute; z-index: 7; pointer-events: none; display: flex; align-items: start; gap: 4px; white-space: nowrap; }
+.remote-cursor span { transform: rotate(-120deg); font-size: 20px; }
+.remote-cursor small { background: #13212c; border: 1px solid currentColor; border-radius: 5px; padding: 2px 5px; }
 .uml-canvas-shell {
   position: relative;
   min-height: 0;

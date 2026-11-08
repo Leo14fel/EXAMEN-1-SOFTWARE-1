@@ -38,6 +38,7 @@ def store() -> MongoStore:
             # Only collections created under this test's fresh UUID prefix.
             database.drop_collection(f"{prefix}users")
             database.drop_collection(f"{prefix}projects")
+            database.drop_collection(f"{prefix}presence")
         connection.close()
 
 

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { applyDocumentChanges, type SyncEvent, type SyncStatus } from './editor-sync'
+import { applyDocumentChanges, type Participant, type PresenceEvent, type SyncEvent, type SyncStatus } from './editor-sync'
 import {
   addCollaborator,
   createProject as createPersistedProject,
@@ -33,6 +33,8 @@ export const useEditorStore = defineStore('editor', {
     collaborators: [] as ProjectCollaborator[],
     effectiveRole: null as ProjectRole | null,
     syncStatus: 'connecting' as SyncStatus,
+    participants: [] as Participant[],
+    presenceSessionId: null as string | null,
     document: null as ProjectDocument | null,
     canUndo: false,
     canRedo: false,
@@ -40,6 +42,11 @@ export const useEditorStore = defineStore('editor', {
     error: null as string | null,
   }),
   actions: {
+    applyPresence(event: PresenceEvent) {
+      if (event.projectId !== this.projectId) return
+      this.participants = structuredClone(event.participants)
+      this.presenceSessionId = event.sessionId
+    },
     applySyncEvent(event: SyncEvent): boolean {
       const current = this.document
       if (!current) return false

@@ -17,7 +17,8 @@ import InspectorPanel from "./InspectorPanel.vue";
 import RelationshipDialog from "./RelationshipDialog.vue";
 import { useAuthStore } from "../auth/auth-store";
 import { downloadProjectXmi } from "./editor-api";
-import { connectProjectSync } from "./editor-sync";
+import { connectProjectSync, type PresenceConnection } from "./editor-sync";
+import PresencePanel from "./PresencePanel.vue";
 
 const editorStore = useEditorStore();
 const authStore = useAuthStore();
@@ -32,9 +33,14 @@ const {
   effectiveRole,
   collaborators,
   syncStatus,
+  participants,
+  presenceSessionId,
 } = storeToRefs(editorStore);
 
 const selectedElementId = ref<string | null>(null);
+const cursorPosition = ref<{ x: number; y: number } | null>(null);
+const editingElementId = ref<string | null>(null);
+const remoteParticipants = computed(() => participants.value.filter((peer) => peer.sessionId !== presenceSessionId.value));
 const relationshipDialogOpen = ref(false);
 const projectMenuOpen = ref(false);
 const createProjectDialogOpen = ref(false);
@@ -269,17 +275,32 @@ function ensureValidSelection(): void {
 
 watch(() => document.value?.revision, ensureValidSelection);
 
-let stopSync: (() => void) | undefined;
+let stopSync: PresenceConnection | undefined;
+function publishPresence() {
+  stopSync?.updatePresence({ cursor: cursorPosition.value,
+    selectedElementId: selectedElementId.value,
+    editingElementId: canEdit.value ? editingElementId.value : null });
+}
+watch([cursorPosition, selectedElementId, editingElementId, canEdit], publishPresence);
 watch([projectId, () => authStore.token], ([id, token]) => {
   stopSync?.();
   selectedElementId.value = null;
+  editingElementId.value = null;
+  cursorPosition.value = null;
+  editorStore.participants = [];
+  editorStore.presenceSessionId = null;
   if (!id || !token) return;
   stopSync = connectProjectSync({
     projectId: id,
     token,
     onEvent: (event) => editorStore.applySyncEvent(event),
+    onPresence: (event) => editorStore.applyPresence(event),
     onStatus: (status) => {
       editorStore.syncStatus = status;
+      if (status !== 'connected') {
+        editorStore.participants = [];
+        editorStore.presenceSessionId = null;
+      }
     },
     onForbidden: (code) => {
       if (code === 4401) authStore.clearSession();
@@ -291,6 +312,7 @@ watch([projectId, () => authStore.token], ([id, token]) => {
       }
     },
   });
+  publishPresence();
 }, { immediate: true });
 onUnmounted(() => stopSync?.());
 
@@ -466,6 +488,8 @@ onMounted(loadProjects);
             </div>
           </div>
 
+          <PresencePanel :key="document.id" :participants="participants" :own-session-id="presenceSessionId"
+            :document="document" @select="selectedElementId = $event" />
           <div class="editor-grid">
             <section class="toolbox-panel">
               <div class="text-overline text-primary">Toolbox</div>
@@ -511,6 +535,8 @@ onMounted(loadProjects);
               :document="document"
               :selected-element-id="selectedElementId"
               :busy="busy || !canEdit"
+              :participants="remoteParticipants"
+              @cursor="cursorPosition = $event"
               @select="selectedElementId = $event"
               @move-node="handleMoveNode"
             />
@@ -521,6 +547,7 @@ onMounted(loadProjects);
               :busy="busy || !canEdit"
               @execute="handleInspectorCommand"
               @clear-selection="selectedElementId = null"
+              @editing="editingElementId = $event"
             />
           </div>
 

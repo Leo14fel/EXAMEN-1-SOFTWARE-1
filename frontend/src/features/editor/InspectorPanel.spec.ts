@@ -95,6 +95,10 @@ describe('InspectorPanel', () => {
     expect(nameInput.exists()).toBe(true)
 
     await nameInput.setValue('ClienteActualizado')
+    expect(wrapper.emitted('editing')?.at(-1)).toEqual(['00000000-0000-0000-0000-000000000010'])
+    await nameInput.setValue('Cliente')
+    expect(wrapper.emitted('editing')?.at(-1)).toEqual([null])
+    await nameInput.setValue('ClienteActualizado')
 
     expect((nameInput.element as HTMLInputElement).value).toBe('ClienteActualizado')
     expect(document.umlModel.elements[0]).toMatchObject({

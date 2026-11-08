@@ -137,3 +137,50 @@ describe('conexión y recuperación', () => {
     state.stop()
   })
 })
+
+
+describe('presencia por la conexión compartida', () => {
+  it('agrupa cursor/selección en dos envíos por segundo y reenvía estado al reconectar', () => {
+    const onEvent = vi.fn().mockReturnValue(true), onPresence = vi.fn()
+    const stop = connectProjectSync({ projectId: document.id, token: 'test-token', onEvent,
+      onPresence, onStatus: vi.fn(), onForbidden: vi.fn() })
+    const socket = FakeSocket.instances[0]!
+    socket.onopen?.()
+    expect(JSON.parse(socket.sent[0]!)).toMatchObject({ presence: true })
+    const snapshot = { type: 'snapshot', document, canUndo: false, canRedo: false, effectiveRole: 'EDITOR' }
+    socket.message(snapshot)
+    for (let i = 0; i < 50; i++) {
+      stop.updatePresence({ cursor: { x: i, y: i }, selectedElementId: null, editingElementId: null })
+    }
+    expect(socket.sent).toHaveLength(1)
+    vi.advanceTimersByTime(500)
+    expect(socket.sent).toHaveLength(2)
+    expect(JSON.parse(socket.sent[1]!).cursor).toEqual({ x: 49, y: 49 })
+    // Receiving remote diagram updates does not manufacture local activity.
+    socket.message(patch)
+    vi.advanceTimersByTime(500)
+    expect(socket.sent).toHaveLength(2)
+    socket.message({ type: 'presence', projectId: document.id, sessionId: 'own', participants: [] })
+    expect(onPresence).toHaveBeenCalledOnce()
+    expect(onEvent).toHaveBeenCalledTimes(2)
+    socket.onclose?.({ code: 1006 })
+    vi.advanceTimersByTime(1000)
+    const next = FakeSocket.instances[1]!
+    next.onopen?.()
+    next.message(snapshot)
+    vi.advanceTimersByTime(500)
+    expect(JSON.parse(next.sent[1]!).cursor).toEqual({ x: 49, y: 49 })
+    stop()
+  })
+
+  it('no envía presencia pendiente después de salir', () => {
+    const stop = connectProjectSync({ projectId: document.id, token: 'test',
+      onEvent: () => true, onPresence: vi.fn(), onStatus: vi.fn(), onForbidden: vi.fn() })
+    const socket = FakeSocket.instances[0]!
+    socket.message({ type: 'snapshot', document, canUndo: false, canRedo: false, effectiveRole: 'EDITOR' })
+    stop.updatePresence({ cursor: null, selectedElementId: 'class', editingElementId: 'class' })
+    stop()
+    vi.advanceTimersByTime(1000)
+    expect(socket.sent).toEqual([])
+  })
+})

@@ -23,6 +23,26 @@ export interface PatchEvent {
 }
 export type SyncEvent = SnapshotEvent | PatchEvent
 
+export interface PresenceState {
+  cursor: { x: number; y: number } | null
+  selectedElementId: string | null
+  editingElementId: string | null
+}
+export interface Participant extends PresenceState {
+  sessionId: string
+  userId: string
+  name: string
+  role: ProjectRole
+  lastActivity: string
+}
+export interface PresenceEvent {
+  type: 'presence'
+  projectId: string
+  sessionId: string
+  participants: Participant[]
+}
+export type PresenceConnection = (() => void) & { updatePresence: (state: PresenceState) => void }
+
 export function applyDocumentChanges(document: ProjectDocument, changes: DocumentChange[]): ProjectDocument {
   // Build an independent projection; never partially publish an invalid delta.
   const result = JSON.parse(JSON.stringify(document)) as Record<string, unknown>
@@ -61,13 +81,28 @@ export function connectProjectSync(options: {
   onEvent: (event: SyncEvent) => boolean
   onStatus: (status: SyncStatus) => void
   onForbidden: (code: number) => void
-}): () => void {
+  onPresence?: (event: PresenceEvent) => void
+}): PresenceConnection {
   let stopped = false
   let socket: WebSocket | null = null
   let retry: ReturnType<typeof setTimeout> | undefined
   let timeout: ReturnType<typeof setTimeout> | undefined
   let attempts = 0
   let resyncPending = false
+  let ready = false
+  let latestPresence: PresenceState | null = null
+  let presenceDirty = false
+  let presenceTimer: ReturnType<typeof setTimeout> | undefined
+  function schedulePresence() {
+    if (stopped || !ready || !presenceDirty || !latestPresence || !options.onPresence || presenceTimer) return
+    presenceTimer = setTimeout(() => {
+      presenceTimer = undefined
+      if (!stopped && ready && latestPresence) {
+        socket?.send(JSON.stringify({ type: 'presence', ...latestPresence }))
+        presenceDirty = false
+      }
+    }, 500)
+  }
   const url = new URL(`${API_BASE_URL}/projects/${encodeURIComponent(options.projectId)}/sync`)
   url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:'
 
@@ -77,16 +112,24 @@ export function connectProjectSync(options: {
     const current = new WebSocket(url)
     socket = current
     resyncPending = false
+    ready = false
+    presenceDirty = latestPresence !== null
     timeout = setTimeout(() => current.close(), 15000)
     current.onopen = () => {
       if (stopped || socket !== current) return
       current.send(JSON.stringify({ type: 'authenticate', token: options.token,
+        ...(options.onPresence ? { presence: true } : {}),
          }))
     }
     current.onmessage = (message) => {
       if (stopped || socket !== current) return
       try {
-        const event = JSON.parse(String(message.data)) as SyncEvent
+        const event = JSON.parse(String(message.data)) as SyncEvent | PresenceEvent
+        if (event.type === 'presence') {
+          if (event.projectId !== options.projectId || !Array.isArray(event.participants)) throw new Error('Presencia inválida')
+          options.onPresence?.(event)
+          return
+        }
         if (event.type !== 'snapshot' && event.type !== 'patch') throw new Error('Evento inválido')
         if (resyncPending && event.type !== 'snapshot') return
         if (!options.onEvent(event)) {
@@ -103,6 +146,8 @@ export function connectProjectSync(options: {
         clearTimeout(timeout)
         attempts = 0
         options.onStatus('connected')
+        ready = true
+        schedulePresence()
       } catch {
         // Reconnect obtains a validated authoritative snapshot after malformed data.
         current.close()
@@ -111,6 +156,9 @@ export function connectProjectSync(options: {
     current.onclose = (event) => {
       if (stopped || socket !== current) return
       clearTimeout(timeout)
+      ready = false
+      clearTimeout(presenceTimer)
+      presenceTimer = undefined
       if ([4401, 4403, 4404].includes(event.code)) {
         stopped = true
         options.onStatus('unavailable')
@@ -127,7 +175,13 @@ export function connectProjectSync(options: {
     stopped = true
     clearTimeout(retry)
     clearTimeout(timeout)
+    clearTimeout(presenceTimer)
     socket?.close()
+  }
+  stop.updatePresence = (state: PresenceState) => {
+    latestPresence = JSON.parse(JSON.stringify(state)) as PresenceState
+    presenceDirty = true
+    schedulePresence()
   }
   return stop
 }

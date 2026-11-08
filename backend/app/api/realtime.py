@@ -3,7 +3,7 @@
 import asyncio
 import json
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from pymongo.errors import PyMongoError
@@ -15,6 +15,7 @@ from app.core.config import settings
 from app.core.security import decode_access_token, invalid_token_error
 from app.db.dependencies import StorageSession, get_db_session
 from app.db.mongo_store import MongoStore
+from app.db.presence import PresenceUpdate, heartbeat, participants
 from app.db.users import get_user_by_id
 
 router = APIRouter(tags=["realtime"])
@@ -53,6 +54,8 @@ def subscription_state(
     session: StorageSession,
     project_id: UUID,
     token: str,
+    presence_session: UUID | None = None,
+    update: PresenceUpdate | None = None,
 ) -> dict:
     # SQL is legacy only. Avoid retaining a transaction/snapshot across subscription polls.
     if not isinstance(session, MongoStore):
@@ -66,6 +69,9 @@ def subscription_state(
             mode="json", by_alias=True
         )
     result = {**state, "effectiveRole": access.effective_role.value}
+    if presence_session is not None and isinstance(session, MongoStore):
+        heartbeat(session, presence_session, access.document, user, access.effective_role, update)
+        result["_presence"] = participants(session, access.document)
     return result
 
 
@@ -90,18 +96,30 @@ async def synchronize_project(
         await socket.close(code=4403)
         return
     await socket.accept()
+    presence_session = None
     try:
         auth = await asyncio.wait_for(receive_control(socket), timeout=AUTH_TIMEOUT_SECONDS)
         token = auth.get("token")
         if auth.get("type") != "authenticate" or not isinstance(token, str):
             await socket.close(code=4401)
             return
+        if auth.get("presence") is True and isinstance(session, MongoStore):
+            # Authenticate before creating the ephemeral lease/index.
+            await run_in_threadpool(subscription_state, session, project_id, token)
+            await run_in_threadpool(
+                session.presence.create_index, "expiresAt", expireAfterSeconds=0
+            )
+            presence_session = uuid4()
         previous = None
+        previous_presence = None
+        update = None
         force_snapshot = True
         while True:
             current = await run_in_threadpool(
-                subscription_state, session, project_id, token
+                subscription_state, session, project_id, token, presence_session, update
             )
+            update = None
+            peers = current.pop("_presence", None)
             document = current["document"]
             if force_snapshot:
                 await socket.send_json({"type": "snapshot", **current})
@@ -118,15 +136,38 @@ async def synchronize_project(
                         "effectiveRole": current["effectiveRole"],
                     }
                 )
+            if peers is not None and peers != previous_presence:
+                await socket.send_json(
+                    {
+                        "type": "presence",
+                        "projectId": str(project_id),
+                        "sessionId": str(presence_session),
+                        "participants": peers,
+                    }
+                )
+                previous_presence = peers
             previous = current
             force_snapshot = False
             try:
                 control = await asyncio.wait_for(receive_control(socket), timeout=POLL_SECONDS)
-                if control == {"type": "resync"}:
-                    force_snapshot = True
+                for _ in range(32):
+                    if presence_session is not None and control.get("type") == "presence":
+                        update = PresenceUpdate.model_validate(control)
+                    elif control == {"type": "resync"}:
+                        force_snapshot = True
+                    else:
+                        await socket.close(code=4400)
+                        return
+                    # Cursor positions supersede queued positions. Slow storage
+                    # must not create an ever-growing trail of obsolete cursors.
+                    try:
+                        control = await asyncio.wait_for(receive_control(socket), timeout=0.001)
+                    except TimeoutError:
+                        break
                 else:
-                    await socket.close(code=4400)
+                    await socket.close(code=4408, reason="Control rate exceeded")
                     return
+                # Bound presence/resync updates and storage reads for noisy clients.
                 await asyncio.sleep(POLL_SECONDS)
             except TimeoutError:
                 pass
@@ -138,3 +179,10 @@ async def synchronize_project(
         await socket.close(code=4400)
     except (PyMongoError, SQLAlchemyError):
         await socket.close(code=1013, reason="Storage unavailable")
+    finally:
+        if presence_session is not None:
+            try:
+                await run_in_threadpool(session.presence.delete_one, {"_id": str(presence_session)})
+            except PyMongoError:
+                # Expiry filtering plus TTL handles cleanup after storage outages.
+                pass
